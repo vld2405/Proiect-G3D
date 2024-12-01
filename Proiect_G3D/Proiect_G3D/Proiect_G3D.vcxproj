@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{d379dd5c-2b3e-4360-a6e1-795ce13f3d61}</ProjectGuid>
-    <RootNamespace>SimulareTrenG3D</RootNamespace>
+    <ProjectGuid>{5f3496db-8e3c-4bac-93f0-cf12d95e9c4c}</ProjectGuid>
+    <RootNamespace>ProiectG3D</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
