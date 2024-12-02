@@ -215,7 +215,7 @@ private:
 	}
 
 protected:
-	const float cameraSpeedFactor = 250.0f;
+	const float cameraSpeedFactor = 10.0f;
 	const float mouseSensitivity = 0.1f;
 
 	// Perspective properties
@@ -265,19 +265,20 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		pCamera->ProcessKeyboard(FORWARD, (float)deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 		pCamera->ProcessKeyboard(BACKWARD, (float)deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 		pCamera->ProcessKeyboard(LEFT, (float)deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 		pCamera->ProcessKeyboard(RIGHT, (float)deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
 		pCamera->ProcessKeyboard(UP, (float)deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
 		pCamera->ProcessKeyboard(DOWN, (float)deltaTime);
 
+	// reset camera to original position
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 		int width, height;
 		glfwGetWindowSize(window, &width, &height);
@@ -295,7 +296,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// glfw window creation
-	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Lab 7", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "TrainSimulation", NULL, NULL);
 	if (window == NULL) {
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
@@ -359,6 +360,7 @@ int main()
 		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
 		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
 	};
+
 	// first, configure the cube's VAO (and VBO)
 	unsigned int VBO, cubeVAO;
 	glGenVertexArrays(1, &cubeVAO);
@@ -408,8 +410,13 @@ int main()
 	std::string objFileName = (currentPath + "\\Models\\FlyingCube.obj");
 	FlyingCube flyingCubeModel(objFileName, false);
 
+	/// Declaring PIRATE
 	std::string piratObjFileName = (currentPath + "\\Models\\Pirat\\Pirat.obj");
 	Model piratObjModel(piratObjFileName, false);
+
+	/// Declaring TRAIN
+	std::string trainObjFileName = (currentPath + "\\Models\\Train\\Train.obj");
+	Model trainObjModel(trainObjFileName, false);
 
 	std::string grassLawnObjFileName = (currentPath + "\\Models\\GrassLawn\\GrassLawn.obj");
 	Model grassLawnObjModel(grassLawnObjFileName, false);
@@ -461,9 +468,14 @@ int main()
 		lightingWithTextureShader.setMat4("model", piratModelMatrix);
 		piratObjModel.Draw(lightingWithTextureShader);
 
-		glm::mat4 grassLawnModelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(1.f));
-		lightingWithTextureShader.setMat4("model", grassLawnModelMatrix);
-		grassLawnObjModel.Draw(lightingWithTextureShader);
+		glm::mat4 trainModelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(0.25f));
+		trainModelMatrix = glm::rotate(trainModelMatrix, glm::radians(-90.0f), glm::vec3(1.f, 0.f, 0.f));
+		lightingWithTextureShader.setMat4("model", trainModelMatrix);
+		trainObjModel.Draw(lightingWithTextureShader);
+
+		//glm::mat4 grassLawnModelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(1.f));
+		//lightingWithTextureShader.setMat4("model", grassLawnModelMatrix);
+		//grassLawnObjModel.Draw(lightingWithTextureShader);
 
 		// also draw the lamp object
 		lampShader.use();

@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{5F3496DB-8E3C-4BAC-93F0-CF12D95E9C4C}</ProjectGuid>
+    <ProjectGuid>{d40162b5-4dd6-44cb-a939-4e6bcb7ad8b3}</ProjectGuid>
     <RootNamespace>ViewOBJModel</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
