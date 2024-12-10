@@ -33,6 +33,9 @@
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
+bool ThirdPersonFlag = true;
+bool FirstPersonFlag = false;
+bool FreeCameraFlag = false;
 
 GLuint ProjMatrixLocation, ViewMatrixLocation, WorldMatrixLocation;
 Camera* pCamera = nullptr;
@@ -56,18 +59,40 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		pCamera->ProcessKeyboard(ECameraMovementType::FORWARD, (float)deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		pCamera->ProcessKeyboard(ECameraMovementType::BACKWARD, (float)deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		pCamera->ProcessKeyboard(ECameraMovementType::LEFT, (float)deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		pCamera->ProcessKeyboard(ECameraMovementType::RIGHT, (float)deltaTime);
-	if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-		pCamera->ProcessKeyboard(ECameraMovementType::UP, (float)deltaTime); 
-	if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-		pCamera->ProcessKeyboard(ECameraMovementType::DOWN, (float)deltaTime);
+	if(FreeCameraFlag == true)
+	{
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			pCamera->ProcessKeyboard(ECameraMovementType::FORWARD, (float)deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			pCamera->ProcessKeyboard(ECameraMovementType::BACKWARD, (float)deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			pCamera->ProcessKeyboard(ECameraMovementType::LEFT, (float)deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			pCamera->ProcessKeyboard(ECameraMovementType::RIGHT, (float)deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+			pCamera->ProcessKeyboard(ECameraMovementType::UP, (float)deltaTime);
+		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+			pCamera->ProcessKeyboard(ECameraMovementType::DOWN, (float)deltaTime);
+	}
+	
+	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+	{
+		FirstPersonFlag = true;
+		FreeCameraFlag = false;
+		ThirdPersonFlag = false;
+	}
+	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+	{
+		FirstPersonFlag = false;
+		FreeCameraFlag = true;
+		ThirdPersonFlag = false;
+	}
+	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+	{
+		FirstPersonFlag = false;
+		FreeCameraFlag = false;
+		ThirdPersonFlag = true;
+	}
 
 	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS) {
 		int width, height;
@@ -80,8 +105,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		if (trainAcceleration < 0.2)
 		{
 			trainAcceleration += 0.01;
-			if (trainAcceleration > 0.5) // Clamp to 0.5
-				trainAcceleration = 0.5;
+			if (trainAcceleration > 0.1) // Clamp to 0.5
+				trainAcceleration = 0.1;
 			std::cout << trainAcceleration << '\n';
 		}
 			
@@ -121,7 +146,7 @@ int main()
 	glfwSetKeyCallback(window, key_callback);
 
 	// tell GLFW to capture our mouse
-	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	glewInit();
 
@@ -200,6 +225,7 @@ int main()
 
 	// Create camera
 	pCamera = new Camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.0, 0.0, 3.0));
+	glm::vec3 cameraPos = pCamera->GetPosition();
 
 	glm::vec3 lightPos(0.0f, 2.0f, 1.0f);
 	glm::vec3 cubePos(0.0f, 5.0f, 1.0f);
@@ -229,6 +255,8 @@ int main()
 	// RENDER LOOP
 
 	glm::vec3 trainPos{0.0f, -0.15f, 0.0f};
+	
+
 
 	while (!glfwWindowShouldClose(window)) {
 		// per-frame time logic
@@ -270,14 +298,38 @@ int main()
 		lightingWithTextureShader.setMat4("projection", pCamera->GetProjectionMatrix());
 		lightingWithTextureShader.setMat4("view", pCamera->GetViewMatrix());
 
-		glm::mat4 trainModelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(0.1f));
+		glm::mat4 trainModelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(1.f));
 		trainModelMatrix = glm::translate(trainModelMatrix, trainPos);
 		lightingWithTextureShader.setMat4("model", trainModelMatrix);
 		trainObjModel.Draw(lightingWithTextureShader);
 
 		trainPos.z += trainAcceleration;
+		if (ThirdPersonFlag == true)
+		{
+			glm::vec3& cameraPos = pCamera->GetPosition();
+			glm::vec3 cameraOffset(2.25f, 10.f, -20.f);
+			cameraPos = cameraOffset + trainPos;
+		}
+		if (FreeCameraFlag == true)
+		{
+			// to be implemented
+		}
+		if (FirstPersonFlag == true)
+		{
+			glm::vec3& cameraPos = pCamera->GetPosition();
+			glm::vec3 cameraOffset(2.25f, 4.f, -4.5f);
+			cameraPos = cameraOffset + trainPos;
+		}
 
-		glm::mat4 grassLawnModelMatrix = glm::scale(glm::mat4(1.f), glm::vec3(1000, 1, 1000));
+		/*if (trainPos.z > 1 && trainPos.z < 3)
+		{
+			trainModelMatrix = glm::rotate(trainModelMatrix, glm::radians(45.f), glm::vec3(0, 1.f, 0));
+			lightingWithTextureShader.setMat4("model", trainModelMatrix);
+			trainObjModel.Draw(lightingWithTextureShader);
+		}*/
+			
+
+		glm::mat4 grassLawnModelMatrix = glm::scale(glm::mat4(1.f), glm::vec3(3000, 1, 3000));
 		lightingWithTextureShader.setMat4("model", grassLawnModelMatrix);
 		grassLawnObjModel.Draw(lightingWithTextureShader);
 

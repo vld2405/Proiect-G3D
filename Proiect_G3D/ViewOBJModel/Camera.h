@@ -35,6 +35,8 @@ public:
 	void ProcessKeyboard(ECameraMovementType direction, float deltaTime);
 	void MouseControl(float xPos, float yPos);
 	void ProcessMouseScroll(float yOffset);
+	glm::vec3& GetPosition();
+	void SetPosition(glm::vec3 pos);
 
 private:
 	void ProcessMouseMovement(float xOffset, float yOffset, bool constrainPitch = true);
