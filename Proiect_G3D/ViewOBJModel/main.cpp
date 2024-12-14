@@ -7,13 +7,13 @@
 #include <stdlib.h> // necesare pentru citirea shader-elor
 #include <stdio.h>
 #include <math.h> 
+#include <chrono>
 
 #include <GL/glew.h>
 
 #include <GLM.hpp>
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
-
 #include <glfw3.h>
 
 #include <iostream>
@@ -52,7 +52,23 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 // timing
 double deltaTime = 0.0f;	// time between current frame and last frame
-double lastFrame = 0.0f;
+std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
+
+void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
+{
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		camera.ProcessKeyboard(ECameraMovementType::FORWARD, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		camera.ProcessKeyboard(ECameraMovementType::BACKWARD, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		camera.ProcessKeyboard(ECameraMovementType::LEFT, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		camera.ProcessKeyboard(ECameraMovementType::RIGHT, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+		camera.ProcessKeyboard(ECameraMovementType::UP, deltaTime);
+	if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+		camera.ProcessKeyboard(ECameraMovementType::DOWN, deltaTime);
+}
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -74,9 +90,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
 			pCamera->ProcessKeyboard(ECameraMovementType::DOWN, (float)deltaTime);
 
-		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS)
 			pCamera->SetCameraSpeed(50.f);
-		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_RELEASE)
 			pCamera->SetCameraSpeed(25.f);
 			
 	}
@@ -261,14 +277,14 @@ int main()
 	// RENDER LOOP
 
 	glm::vec3 trainPos{0.0f, -0.15f, 0.0f};
-	
-
 
 	while (!glfwWindowShouldClose(window)) {
 		// per-frame time logic
-		double currentFrame = glfwGetTime();
-		deltaTime = currentFrame - lastFrame;
+		std::chrono::high_resolution_clock::time_point currentFrame = std::chrono::high_resolution_clock::now();
+		deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentFrame - lastFrame).count();
 		lastFrame = currentFrame;
+
+		HandleInput(window, *pCamera, deltaTime);
 
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream> // If you intend to use the commented-out debugging std::cout lines
 
+
 #include <GLM.hpp>
 #include <GL/glew.h>
 
@@ -44,7 +45,7 @@ private:
 	void UpdateCameraVectors();
 
 protected:
-	float cameraSpeedFactor = 10.0f;
+	float cameraSpeedFactor = 50.0f;
 	const float mouseSensitivity = 0.1f;
 
 	// Perspective properties
