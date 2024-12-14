@@ -137,6 +137,11 @@ void Camera::SetPosition(glm::vec3 pos)
 	position = pos;
 }
 
+void Camera::SetCameraSpeed(float speed)
+{
+	cameraSpeedFactor = speed;
+}
+
 void Camera::ProcessMouseMovement(float xOffset, float yOffset, bool constrainPitch)
 {
 	yaw += xOffset;

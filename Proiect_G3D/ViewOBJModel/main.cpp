@@ -73,6 +73,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			pCamera->ProcessKeyboard(ECameraMovementType::UP, (float)deltaTime);
 		if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
 			pCamera->ProcessKeyboard(ECameraMovementType::DOWN, (float)deltaTime);
+
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+			pCamera->SetCameraSpeed(50.f);
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE)
+			pCamera->SetCameraSpeed(25.f);
+			
 	}
 	
 	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)

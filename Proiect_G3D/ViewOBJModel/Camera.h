@@ -37,13 +37,14 @@ public:
 	void ProcessMouseScroll(float yOffset);
 	glm::vec3& GetPosition();
 	void SetPosition(glm::vec3 pos);
+	void SetCameraSpeed(float speed);
 
 private:
 	void ProcessMouseMovement(float xOffset, float yOffset, bool constrainPitch = true);
 	void UpdateCameraVectors();
 
 protected:
-	const float cameraSpeedFactor = 10.0f;
+	float cameraSpeedFactor = 10.0f;
 	const float mouseSensitivity = 0.1f;
 
 	// Perspective properties
