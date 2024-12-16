@@ -145,6 +145,44 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 }
 
+std::vector<glm::vec3> treePositions;
+void GenerateTreePositions(float trainPathWidth, float trainPathHeight, float trainZMin, float trainZMax, int treeCount, const glm::vec3& modelMin, const glm::vec3& modelMax, const std::vector<glm::vec3>& pathPoints) {
+
+    for (int i = 0; i < treeCount; ++i) {
+        glm::vec3 position;
+        bool validPosition = false;
+
+        while (!validPosition) {
+            // Randomly generate tree position
+			position.x = rand() % int(modelMax.x - modelMin.x) + modelMin.x;
+			position.y = 0.0f;  // Assuming the trees are placed at ground level
+			position.z = rand() % int(modelMax.z - modelMin.z) + modelMin.z;
+
+            // Check if the position is outside the train's path zone
+            if (!(position.x > -trainPathWidth / 2.0f && position.x < trainPathWidth / 2.0f &&
+                  position.z > trainZMin && position.z < trainZMax)) {
+                // Further check if the position is too close to the path
+                bool isTooClose = false;
+                for (const auto& pathPoint : pathPoints) {
+                    // You can adjust the threshold distance (e.g., 5.0f) based on your needs
+                    float distance = glm::distance(position, pathPoint);
+                    if (distance < 5.0f) {  // Check if the tree is too close to the path
+                        isTooClose = true;
+                        break;
+                    }
+                }
+                if (!isTooClose) {
+                    validPosition = true;
+                }
+            }
+        }
+
+        treePositions.push_back(position);
+    }
+}
+
+
+
 int main()
 {
 	// glfw: initialize and configure
@@ -274,9 +312,38 @@ int main()
 	std::string trainObjFileName = (currentPath + "\\Models\\Train2\\thomas_the_tank_engine.obj");
 	Model trainObjModel(trainObjFileName, false);
 
+	std::string tree1ObjFileName = (currentPath + "\\Models\\Tree1\\Tree1.obj");
+	Model tree1ObjModel(tree1ObjFileName, false);
+
+	std::string tree2ObjFileName = (currentPath + "\\Models\\Tree2\\Tree2.obj");
+	Model tree2ObjModel(tree2ObjFileName, false);
+
+	//draw trees
+	float trainPathWidth = 10.0f;
+	float trainPathHeight = 10.0f;
+	float trainZMin = -100.0f;
+	float trainZMax = 100.0f;
+	int treeCount = 150;
+	glm::vec3 modelMin(-30.0f, 0.0f, -30.0f);  // Minimum coordinates (example)
+	glm::vec3 modelMax(30.0f, 0.0f, 30.0f);    // Maximum coordinates (example)
+
+	std::vector<glm::vec3> pathPoints;
+	for (float z = trainZMin; z <= trainZMax; z += 1.0f) {
+		pathPoints.push_back(glm::vec3(0.0f, 0.0f, z)); 
+	}
+
+	GenerateTreePositions(trainPathWidth, trainPathHeight, trainZMin, trainZMax, treeCount, modelMin, modelMax, pathPoints);
+
+	std::vector<std::pair<glm::vec3, int>> treeData; // Position + Type
+	for (const auto& pos : treePositions) {
+		int randNum = rand() % 2; // Randomly choose 0 or 1
+		treeData.emplace_back(pos, randNum); // Store position and type
+	}
+
+
 	// RENDER LOOP
 
-	glm::vec3 trainPos{0.0f, -0.15f, 0.0f};
+	glm::vec3 trainPos{-2.5f, 0.0f, 0.0f};
 
 	while (!glfwWindowShouldClose(window)) {
 		// per-frame time logic
@@ -349,11 +416,28 @@ int main()
 			lightingWithTextureShader.setMat4("model", trainModelMatrix);
 			trainObjModel.Draw(lightingWithTextureShader);
 		}*/
-			
 
 		glm::mat4 grassLawnModelMatrix = glm::scale(glm::mat4(1.f), glm::vec3(3000, 1, 3000));
 		lightingWithTextureShader.setMat4("model", grassLawnModelMatrix);
 		grassLawnObjModel.Draw(lightingWithTextureShader);
+
+		for (const auto& tree : treeData) {
+			glm::mat4 treeModelMatrix = glm::mat4(1.0f);
+			treeModelMatrix = glm::translate(treeModelMatrix, tree.first); // Tree position
+
+			if (tree.second == 0) {
+				// Tree1: Scale and draw
+				glm::mat4 finalModelMatrix = glm::scale(treeModelMatrix, glm::vec3(0.5f));
+				lightingWithTextureShader.setMat4("model", finalModelMatrix);
+				tree1ObjModel.Draw(lightingWithTextureShader);
+			}
+			else {
+				// Tree2: Scale and draw
+				glm::mat4 finalModelMatrix = glm::scale(treeModelMatrix, glm::vec3(1.0f));
+				lightingWithTextureShader.setMat4("model", finalModelMatrix);
+				tree2ObjModel.Draw(lightingWithTextureShader);
+			}
+		}
 
 		// also draw the lamp object
 		lampShader.use();
