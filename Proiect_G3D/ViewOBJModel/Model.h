@@ -19,6 +19,7 @@ public:
     bool gammaCorrection;
 
     // constructor, expects a filepath to a 3D model.
+    Model();
     Model(string const& path, bool bSmoothNormals, bool gamma = false);
 
     // draws the model, and thus all its meshes

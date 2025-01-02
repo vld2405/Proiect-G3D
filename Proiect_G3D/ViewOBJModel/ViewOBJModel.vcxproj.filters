@@ -27,19 +27,13 @@
     <ClCompile Include="Shader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FlyingCube.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CSkybox.cpp">
+    <ClCompile Include="FlyingCube.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CVertexBufferObject.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CTexture.cpp">
+    <ClCompile Include="Train.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -62,9 +56,6 @@
     <ClInclude Include="Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FlyingCube.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -74,13 +65,10 @@
     <ClInclude Include="ETrainMovementType.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CSkybox.h">
+    <ClInclude Include="FlyingCube.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CVertexBufferObject.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="CTexture.h">
+    <ClInclude Include="Train.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

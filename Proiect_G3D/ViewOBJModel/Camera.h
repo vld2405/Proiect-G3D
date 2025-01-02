@@ -19,8 +19,8 @@ private:
 	// Default camera values
 	const float zNEAR = 0.1f;
 	const float zFAR = 500.f;
-	const float YAW = -90.0f;
-	const float PITCH = 0.0f;
+	const float YAW = 90.0f;
+	const float PITCH = -20.0f;
 	const float FOV = 45.0f;
 	glm::vec3 startPosition;
 
@@ -39,6 +39,7 @@ public:
 	glm::vec3& GetPosition();
 	void SetPosition(glm::vec3 pos);
 	void SetCameraSpeed(float speed);
+	void SetOrientation(float xOffset, float yOffset);
 
 private:
 	void ProcessMouseMovement(float xOffset, float yOffset, bool constrainPitch = true);

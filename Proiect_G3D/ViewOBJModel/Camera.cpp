@@ -142,6 +142,12 @@ void Camera::SetCameraSpeed(float speed)
 	cameraSpeedFactor = speed;
 }
 
+void Camera::SetOrientation(float xOffset, float yOffset)
+{
+	yaw = xOffset;
+	pitch = yOffset;
+}
+
 void Camera::ProcessMouseMovement(float xOffset, float yOffset, bool constrainPitch)
 {
 	yaw += xOffset;
