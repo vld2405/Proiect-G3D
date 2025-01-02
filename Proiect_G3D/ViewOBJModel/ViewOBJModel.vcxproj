@@ -122,7 +122,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\_external\GLEW\x64;..\_external\GLFW\x64;..\_external\glm;..\_external\stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Tudor\Desktop\G3D\Proiect\Proiect-G3D\Proiect_G3D\_external;..\_external\GLEW\x64;..\_external\GLFW\x64;..\_external\glm;..\_external\stb;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -147,6 +147,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="CSkybox.cpp" />
+    <ClCompile Include="CTexture.cpp" />
+    <ClCompile Include="CVertexBufferObject.cpp" />
     <ClCompile Include="FlyingCube.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="Model.cpp" />
@@ -158,6 +161,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
+    <ClInclude Include="CSkybox.h" />
+    <ClInclude Include="CTexture.h" />
+    <ClInclude Include="CVertexBufferObject.h" />
     <ClInclude Include="ECameraMovementType.h" />
     <ClInclude Include="ETrainMovementType.h" />
     <ClInclude Include="FlyingCube.h" />
