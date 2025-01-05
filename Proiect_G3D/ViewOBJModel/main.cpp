@@ -1,4 +1,4 @@
-// ViewOBJModel.cpp : This file contains the 'main' function. Program execution begins and ends there.
+﻿// ViewOBJModel.cpp : This file contains the 'main' function. Program execution begins and ends there.
 
 #include <Windows.h>
 #include <locale>
@@ -20,6 +20,7 @@
 #include <fstream>
 #include <sstream>
 #include "Shader.h"
+#include "Skybox.h"
 #include "Model.h"
 #include "FlyingCube.h"
 #include "Camera.h"
@@ -250,6 +251,19 @@ int main()
 	Shader lightingShader((currentPath + "\\Shaders\\PhongLight.vs").c_str(), (currentPath + "\\Shaders\\PhongLight.fs").c_str());
 	Shader lightingWithTextureShader((currentPath + "\\Shaders\\PhongLightWithTexture.vs").c_str(), (currentPath + "\\Shaders\\PhongLightWithTexture.fs").c_str());
 	Shader lampShader((currentPath + "\\Shaders\\Lamp.vs").c_str(), (currentPath + "\\Shaders\\Lamp.fs").c_str());
+	Shader skyboxShader((currentPath + "\\Shaders\\Skybox.vs").c_str(), (currentPath + "\\Shaders\\Skybox.fs").c_str());
+
+	std::vector<std::string> skyPaths = {
+		currentPath + "\\Models\\Skybox_images\\px.jpg",
+		currentPath + "\\Models\\Skybox_images\\nx.jpg",
+		currentPath + "\\Models\\Skybox_images\\py.jpg",
+		currentPath + "\\Models\\Skybox_images\\ny.jpg",
+		currentPath + "\\Models\\Skybox_images\\pz.jpg",
+		currentPath + "\\Models\\Skybox_images\\nz.jpg"
+	};
+
+	Skybox skybox(skyPaths);
+
 
 	loadModels(currentPath);
 
@@ -275,12 +289,12 @@ int main()
 		treeData.emplace_back(pos, randNum); // Store position and type
 	}
 
+	glm::vec3 trainPos{-2.5f, 0.0f, -4.0f};
 
 	// RENDER LOOP
 
-	glm::vec3 trainPos{-2.5f, 0.0f, -4.0f};
-
 	while (!glfwWindowShouldClose(window)) {
+
 		// per-frame time logic
 		std::chrono::high_resolution_clock::time_point currentFrame = std::chrono::high_resolution_clock::now();
 		deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentFrame - lastFrame).count();
@@ -293,6 +307,26 @@ int main()
 
 		//lightPos.x = 2.5 * cos(glfwGetTime());
 		//lightPos.z = 2.5 * sin(glfwGetTime());
+
+		glDepthMask(GL_FALSE);
+		glDepthFunc(GL_LEQUAL); // Permite desenarea Skybox in spate
+
+		skyboxShader.use();
+		skyboxShader.setMat4("view", glm::mat4(glm::mat3(pCamera->GetViewMatrix()))); // Elimina translatia
+		skyboxShader.setMat4("projection", pCamera->GetProjectionMatrix());
+		skyboxShader.setMat4("model", glm::mat4(1.0f));
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.getTextureID());
+		skyboxShader.setInt("skybox", 0);
+
+		skybox.draw(skyboxShader);
+
+		glDisable(GL_BLEND);
+		glDepthMask(GL_TRUE);
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+
 
 		lightingShader.use();
 		lightingShader.SetVec3("objectColor", 0.5f, 1.0f, 0.31f);
