@@ -34,8 +34,8 @@
 #pragma comment(lib, "winmm.lib")
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1600;
+const unsigned int SCR_HEIGHT = 1200;
 
 bool ThirdPersonFlag = true;
 bool FirstPersonFlag = false;
@@ -58,6 +58,12 @@ void PlayTrainMovementSound(const std::string& soundFilePath)
 {
 	std::wstring soundFilePathW = std::wstring(soundFilePath.begin(), soundFilePath.end());
 	PlaySound(soundFilePathW.c_str(), NULL, SND_SYNC);
+}
+
+void PlayBackgroundMusic(const std::string& soundFilePath)
+{
+	std::wstring soundFilePathW = std::wstring(soundFilePath.begin(), soundFilePath.end());
+	PlaySound(soundFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
 }
 
 void StopTrainSound()
@@ -132,18 +138,6 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 				trainAcceleration = 0.5;
 			std::cout << trainAcceleration << '\n';
 		}
-		std::string trainMovementFilePath = "C:\\Users\\Tudor\\Desktop\\Proiect-G3D\\Proiect_G3D\\Sound\\train_sound.wav"; // Use the correct path to your train movement sound file
-		std::string backgroundFilePath = "C:\\Users\\Tudor\\Desktop\\Proiect-G3D\\Proiect_G3D\\Sound\\rain.wav"; // Use the correct path to your background sound file
-
-		// Stop the background sound
-		PlaySound(NULL, 0, 0);
-
-		// Play the train movement sound synchronously
-		PlayTrainMovementSound(trainMovementFilePath);
-
-		// Resume the background sound
-		std::wstring backgroundFilePathW = std::wstring(backgroundFilePath.begin(), backgroundFilePath.end());
-		PlaySound(backgroundFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
@@ -157,22 +151,23 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 		}
 	}
 
-	// Check for 'H' key press to play the sound
+	// Check for 'H' key press to play the horn sound
 	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
 	{
-		std::string hornFilePath = "C:\\Users\\Tudor\\Desktop\\Proiect-G3D\\Proiect_G3D\\Sound\\horn.wav"; // Use the correct path to your horn sound file
-		std::string backgroundFilePath = "C:\\Users\\Tudor\\Desktop\\Proiect-G3D\\Proiect_G3D\\Sound\\rain.wav"; // Use the correct path to your background sound file
+		std::string hornFilePath = "C:\\Users\\Tudor\\Desktop\\G3D\\Proiect\\Proiect-G3D\\Proiect_G3D\\Sound\\horn.wav"; // Use the correct path to your horn sound file
+		std::string backgroundFilePath = "C:\\Users\\Tudor\\Desktop\\G3D\\Proiect\\Proiect-G3D\\Proiect_G3D\\Sound\\rain.wav"; // Use the correct path to your background sound file
 
 		// Stop the background sound
 		PlaySound(NULL, 0, 0);
 
-		// Play the horn sound synchronously
+		// Play the horn sound asynchronously
 		PlayTrainSound(hornFilePath);
 
 		// Resume the background sound
 		std::wstring backgroundFilePathW = std::wstring(backgroundFilePath.begin(), backgroundFilePath.end());
 		PlaySound(backgroundFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
 	}
+
 
 }
 
@@ -322,36 +317,6 @@ int main()
 
 	loadModels(currentPath);
 
-	// Construct the file path for the background music
-	//std::string musicFilePath = currentPath + "\\Sound\\train_sound.mp3";
-	//std::cout << "Loading background music from: " << musicFilePath << std::endl;
-
-	//sf::Sound sound;
-	//sf::SoundBuffer sound_buffer;
-	//sound_buffer.loadFromFile(musicFilePath);
-
-	// Load background music
-	//sf::Music backgroundMusic;
-	//if (!backgroundMusic.openFromFile(musicFilePath))
-	//{
-	//	std::cerr << "Error loading background music file" << std::endl;
-	//	//return -1;
-	//}
-	//backgroundMusic.setLoop(true);
-	//backgroundMusic.play();
-
-	// Load sound
-	//sf::SoundBuffer buffer;
-	//if (!buffer.loadFromFile(currentPath + "\\Sound\\train_sound.wav"))
-	//{
-	//	std::cerr << "Error loading sound file" << std::endl;
-	//	return -1;
-	//}
-
-	//sf::Sound sound;
-	//sound.setBuffer(buffer);
-	//sound.play();
-
 	//draw trees
 	float trainPathWidth = 10.0f;
 	float trainPathHeight = 10.0f;
@@ -377,6 +342,8 @@ int main()
 	glm::vec3 trainPos{-2.5f, 0.0f, -4.0f};
 
 	// RENDER LOOP
+
+	bool isMoving = false;
 
 	while (!glfwWindowShouldClose(window)) {
 
@@ -439,6 +406,19 @@ int main()
 		trainObjModel.Draw(lightingWithTextureShader);
 
 		trainPos.z += trainAcceleration;
+
+		if (trainAcceleration > 0 && !isMoving)
+		{
+			isMoving = true;
+			std::string movingMusicFilePath = currentPath + "\\Sound\\train_sound.wav"; // Use the correct path to your moving music file
+			PlayBackgroundMusic(movingMusicFilePath);
+		}
+		else if (trainAcceleration == 0 && isMoving)
+		{
+			isMoving = false;
+			std::string idleMusicFilePath = currentPath + "\\Sound\\rain.wav"; // Use the correct path to your idle music file
+			PlayBackgroundMusic(idleMusicFilePath);
+		}
 
 		if (ThirdPersonFlag == true)
 		{
