@@ -37,6 +37,10 @@
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 1200;
 
+// timing
+double deltaTime = 0.0f;	// time between current frame and last frame
+std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
+
 bool ThirdPersonFlag = true;
 bool FirstPersonFlag = false;
 bool FreeCameraFlag = false;
@@ -47,6 +51,42 @@ bool firstStation = false;
 GLuint ProjMatrixLocation, ViewMatrixLocation, WorldMatrixLocation;
 Camera* pCamera = nullptr;
 float trainAcceleration = 0;
+
+const int trainStationTileOffset = 4;
+static int trainStationIndex = 0;
+
+std::vector<glm::vec3> treePositions;
+std::vector<float> treeScales;
+
+
+std::string movingTrainSoundFilePath;
+std::string idleMusicFilePath;
+std::string hornFilePath;
+
+std::string grassLawnObjFileName;
+std::string trainObjFileName, trainStationObjFileName;
+std::string tree1ObjFileName, tree2ObjFileName;
+std::string railwayObjFileName;
+
+Model grassLawnObjModel;
+Model trainObjModel, trainStationObjModel;
+Model tree1ObjModel, tree2ObjModel;
+Model railwayObjModel;
+std::vector<Model> trainStationObjModels;
+
+std::vector<std::string> trainStationNames = { "Brasov", "Predeal", "Sinaia", "Campina", "Ploiesti", "Bucuresti" };
+
+void SetVolume(float volume)
+{
+	// Clamp volume between 0.0f and 1.0f
+	volume = (volume < 0.0f) ? 0.0f : (volume > 1.0f) ? 1.0f : volume;
+
+	// Convert to DWORD volume format
+	DWORD dwVolume = static_cast<DWORD>(volume * 0xFFFF);
+	dwVolume = (dwVolume & 0xFFFF) | (dwVolume << 16); // Left and Right channel
+
+	waveOutSetVolume(0, dwVolume); // Set master volume
+}
 
 void PlayTrainSound(const std::string& soundFilePath)
 {
@@ -79,10 +119,6 @@ void Cleanup()
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-
-// timing
-double deltaTime = 0.0f;	// time between current frame and last frame
-std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
 
 void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 {
@@ -131,11 +167,11 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 
 	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 	{
-		if (trainAcceleration < 0.2)
+		if (trainAcceleration < 20)
 		{
-			trainAcceleration += 0.01;
-			if (trainAcceleration > 0.5) // Clamp to 0.5
-				trainAcceleration = 0.5;
+			trainAcceleration += 0.05;
+			if (trainAcceleration > 20) // Clamp to 4
+				trainAcceleration = 20;
 			std::cout << trainAcceleration << '\n';
 		}
 	}
@@ -144,19 +180,15 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 	{
 		if (trainAcceleration > 0)
 		{
-			trainAcceleration -= 0.01;
+			trainAcceleration -= 0.1;
 			if (trainAcceleration < 0) // Clamp to 0
 				trainAcceleration = 0;
 			std::cout << trainAcceleration << '\n';
 		}
 	}
 
-	// Check for 'H' key press to play the horn sound
 	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
 	{
-		std::string hornFilePath = "C:\\Users\\Tudor\\Desktop\\G3D\\Proiect\\Proiect-G3D\\Proiect_G3D\\Sound\\horn.wav"; // Use the correct path to your horn sound file
-		std::string backgroundFilePath = "C:\\Users\\Tudor\\Desktop\\G3D\\Proiect\\Proiect-G3D\\Proiect_G3D\\Sound\\rain.wav"; // Use the correct path to your background sound file
-
 		// Stop the background sound
 		PlaySound(NULL, 0, 0);
 
@@ -164,18 +196,14 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 		PlayTrainSound(hornFilePath);
 
 		// Resume the background sound
-		std::wstring backgroundFilePathW = std::wstring(backgroundFilePath.begin(), backgroundFilePath.end());
+		std::wstring backgroundFilePathW = std::wstring(idleMusicFilePath.begin(), idleMusicFilePath.end());
 		PlaySound(backgroundFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
 	}
-
-
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{}
-
-std::vector<glm::vec3> treePositions;
-std::vector<float> treeScales; // Add this line
+{
+}
 
 void GenerateTreePositions(float trainPathWidth, float trainPathHeight, float trainZMin, float trainZMax, int treeCount, const glm::vec3& modelMin, const glm::vec3& modelMax, const std::vector<glm::vec3>& pathPoints) {
 	for (int i = 0; i < treeCount; ++i) {
@@ -209,22 +237,16 @@ void GenerateTreePositions(float trainPathWidth, float trainPathHeight, float tr
 
 		treePositions.push_back(position);
 		float scale = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 0.5f + 0.75f; // Random scale between 0.75 and 1.25
-		treeScales.push_back(scale); // Add this line
+		treeScales.push_back(scale);
 	}
 }
 
-std::string grassLawnObjFileName;
-std::string trainObjFileName, trainStationObjFileName;
-std::string tree1ObjFileName, tree2ObjFileName;
-std::string railwayObjFileName;
-
-Model grassLawnObjModel;
-Model trainObjModel, trainStationObjModel;
-Model tree1ObjModel, tree2ObjModel;
-Model railwayObjModel;
-std::vector<Model> trainStationObjModels;
-
-std::vector<std::string> trainStationNames = {"Brasov", "Predeal", "Sinaia", "Campina", "Ploiesti", "Bucuresti"};
+void loadSounds(std::string currentPath)
+{
+	movingTrainSoundFilePath = currentPath + "\\Sound\\train_sound.wav";
+	idleMusicFilePath = currentPath + "\\Sound\\rain.wav";
+	hornFilePath = currentPath + "\\Sound\\horn.wav";
+}
 
 void loadModels(std::string currentPath)
 {
@@ -249,9 +271,6 @@ void loadModels(std::string currentPath)
 		trainStationObjModels.push_back(Model(trainStationObjFileName, false));
 	}
 }
-
-const int trainStationTileOffset = 4;
-static int trainStationIndex = 0;
 
 int main()
 {
@@ -282,11 +301,14 @@ int main()
 
 	glEnable(GL_DEPTH_TEST);
 
+	SetVolume(0.05f); // 0.5f means 50% volume
 
 	// Create camera
 	pCamera = new Camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.0, 0.0, 3.0));
 	glm::vec3 cameraPos = pCamera->GetPosition();
 	//pCamera->SetOrientation(90.f, -20.0f);
+
+	
 
 	wchar_t buffer[MAX_PATH];
 	GetCurrentDirectoryW(MAX_PATH, buffer);
@@ -297,28 +319,40 @@ int main()
 	std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
 	std::string currentPath = converter.to_bytes(wscurrentPath);
 
-	std::string musicFilePath(currentPath + "\\Sound\\rain.wav"); // Use an absolute path to your .wav file
-	std::wstring musicFilePathW = std::wstring(musicFilePath.begin(), musicFilePath.end());
-	PlaySound(musicFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
+	loadModels(currentPath);
+	loadSounds(currentPath);
+
+	std::wstring idleMusicFilePathW = std::wstring(idleMusicFilePath.begin(), idleMusicFilePath.end());
+	PlaySound(idleMusicFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
 
 	Shader lightingShader((currentPath + "\\Shaders\\PhongLight.vs").c_str(), (currentPath + "\\Shaders\\PhongLight.fs").c_str());
 	Shader lightingWithTextureShader((currentPath + "\\Shaders\\PhongLightWithTexture.vs").c_str(), (currentPath + "\\Shaders\\PhongLightWithTexture.fs").c_str());
 	Shader lampShader((currentPath + "\\Shaders\\Lamp.vs").c_str(), (currentPath + "\\Shaders\\Lamp.fs").c_str());
 	Shader skyboxShader((currentPath + "\\Shaders\\Skybox.vs").c_str(), (currentPath + "\\Shaders\\Skybox.fs").c_str());
 
+	//std::vector<std::string> skyPaths = {
+	//	currentPath + "\\Models\\Skybox_images\\px.jpg",
+	//	currentPath + "\\Models\\Skybox_images\\nx.jpg",
+	//	currentPath + "\\Models\\Skybox_images\\py.jpg",
+	//	currentPath + "\\Models\\Skybox_images\\ny.jpg",
+	//	currentPath + "\\Models\\Skybox_images\\pz.jpg",
+	//	currentPath + "\\Models\\Skybox_images\\nz.jpg"
+	//};
+	
 	std::vector<std::string> skyPaths = {
-		currentPath + "\\Models\\Skybox_images\\px.jpg",
-		currentPath + "\\Models\\Skybox_images\\nx.jpg",
-		currentPath + "\\Models\\Skybox_images\\py.jpg",
-		currentPath + "\\Models\\Skybox_images\\ny.jpg",
-		currentPath + "\\Models\\Skybox_images\\pz.jpg",
-		currentPath + "\\Models\\Skybox_images\\nz.jpg"
+
+	currentPath + "\\Models\\Skybox_images\\bluecloud_ft.jpg",
+	currentPath + "\\Models\\Skybox_images\\bluecloud_bk.jpg",
+
+	currentPath + "\\Models\\Skybox_images\\bluecloud_up.jpg",
+	currentPath + "\\Models\\Skybox_images\\bluecloud_dn.jpg",
+
+	currentPath + "\\Models\\Skybox_images\\bluecloud_rt.jpg",
+	currentPath + "\\Models\\Skybox_images\\bluecloud_lf.jpg"
 	};
 
+
 	Skybox skybox(skyPaths);
-
-
-	loadModels(currentPath);
 
 	//draw trees
 	float trainPathWidth = 10.0f;
@@ -408,18 +442,16 @@ int main()
 		lightingWithTextureShader.setMat4("model", trainModelMatrix);
 		trainObjModel.Draw(lightingWithTextureShader);
 
-		trainPos.z += trainAcceleration;
+		trainPos.z += trainAcceleration * deltaTime;
 
 		if (trainAcceleration > 0 && !isMoving)
 		{
 			isMoving = true;
-			std::string movingMusicFilePath = currentPath + "\\Sound\\train_sound.wav"; // Use the correct path to your moving music file
-			PlayBackgroundMusic(movingMusicFilePath);
+			PlayBackgroundMusic(movingTrainSoundFilePath);
 		}
 		else if (trainAcceleration == 0 && isMoving)
 		{
 			isMoving = false;
-			std::string idleMusicFilePath = currentPath + "\\Sound\\rain.wav"; // Use the correct path to your idle music file
 			PlayBackgroundMusic(idleMusicFilePath);
 		}
 
@@ -475,7 +507,7 @@ int main()
 			drawStation = false;
 		}
 
-		for (int i = -1; i <= 1; ++i) {
+		for (int i = -1; i <= 2; ++i) {
 			glm::mat4 grassLawnModelMatrix_middle = glm::mat4(1.f);
 			grassLawnModelMatrix_middle = glm::translate(grassLawnModelMatrix_middle, glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
 			grassLawnModelMatrix_middle = glm::scale(grassLawnModelMatrix_middle, glm::vec3(3000.f, 1.f, 3000.f));
