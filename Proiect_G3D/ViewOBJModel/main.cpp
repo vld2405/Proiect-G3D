@@ -27,6 +27,8 @@
 #include "FlyingCube.h"
 #include "Camera.h"
 #include "ETrainMovementType.h"
+#include "Particle.h"
+#include <vector>
 
 #pragma comment (lib, "glfw3dll.lib")
 #pragma comment (lib, "glew32.lib")
@@ -135,6 +137,84 @@ void StopTrainSound()
 void Cleanup()
 {
 	delete pCamera;
+}
+
+unsigned int quadVAO = 0;
+unsigned int quadVBO;
+
+void RenderQuad() {
+	if (quadVAO == 0) {
+		float quadVertices[] = {
+			// positions
+			-0.05f,  0.05f, 0.0f,
+			-0.05f, -0.05f, 0.0f,
+			 0.05f, -0.05f, 0.0f,
+
+			-0.05f,  0.05f, 0.0f,
+			 0.05f, -0.05f, 0.0f,
+			 0.05f,  0.05f, 0.0f
+		};
+
+		glGenVertexArrays(1, &quadVAO);
+		glGenBuffers(1, &quadVBO);
+		glBindVertexArray(quadVAO);
+		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	}
+	glBindVertexArray(quadVAO);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+	glBindVertexArray(0);
+}
+
+// Number of particles
+const int NUM_PARTICLES = 1000;
+std::vector<Particle> particles(NUM_PARTICLES);
+
+void InitParticles() {
+	for (auto& particle : particles) {
+		particle.position = glm::vec3(
+			static_cast<float>(rand() % 100 - 50),
+			static_cast<float>(rand() % 50 + 50),
+			static_cast<float>(rand() % 100 - 50)
+		);
+		particle.velocity = glm::vec3(0.0f, -1.0f, 0.0f);
+		particle.life = static_cast<float>(rand() % 100) / 100.0f;
+	}
+}
+
+void UpdateParticles(float deltaTime) {
+	for (auto& particle : particles) {
+		particle.position += particle.velocity * deltaTime;
+		particle.life -= deltaTime;
+
+		// Reset particle if it has "died"
+		if (particle.life <= 0.0f) {
+			particle.position = glm::vec3(
+				static_cast<float>(rand() % 100 - 50),
+				static_cast<float>(rand() % 50 + 50),
+				static_cast<float>(rand() % 100 - 50)
+			);
+			particle.life = static_cast<float>(rand() % 100) / 100.0f;
+		}
+	}
+}
+
+void RenderParticles(Shader& shader) {
+	shader.use();
+	shader.setMat4("projection", pCamera->GetProjectionMatrix());
+	shader.setMat4("view", pCamera->GetViewMatrix());
+
+	for (const auto& particle : particles) {
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, particle.position);
+		shader.setMat4("model", model);
+
+		// Render a simple quad or point for the particle
+		// Assuming you have a function to render a quad
+		RenderQuad();
+	}
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -412,6 +492,8 @@ int main()
 
 	bool isMoving = false;
 
+	InitParticles();
+
 	while (!glfwWindowShouldClose(window)) {
 
 		// per-frame time logic
@@ -446,6 +528,7 @@ int main()
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 
+		UpdateParticles(deltaTime);
 
 		lightingShader.use();
 		lightingShader.SetVec3("objectColor", 0.5f, 1.0f, 0.31f);
@@ -573,6 +656,8 @@ int main()
 		lampShader.use();
 		lampShader.setMat4("projection", pCamera->GetProjectionMatrix());
 		lampShader.setMat4("view", pCamera->GetViewMatrix());
+
+		RenderParticles(lightingShader);
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		glfwSwapBuffers(window);

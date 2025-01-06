@@ -48,6 +48,12 @@
     <None Include="..\Shaders\Skybox.vs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="particle.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="particle.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Mesh.h">
@@ -81,6 +87,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Skybox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Particle.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
