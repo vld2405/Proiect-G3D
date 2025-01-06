@@ -175,39 +175,42 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {}
 
 std::vector<glm::vec3> treePositions;
+std::vector<float> treeScales; // Add this line
+
 void GenerateTreePositions(float trainPathWidth, float trainPathHeight, float trainZMin, float trainZMax, int treeCount, const glm::vec3& modelMin, const glm::vec3& modelMax, const std::vector<glm::vec3>& pathPoints) {
+	for (int i = 0; i < treeCount; ++i) {
+		glm::vec3 position;
+		bool validPosition = false;
 
-    for (int i = 0; i < treeCount; ++i) {
-        glm::vec3 position;
-        bool validPosition = false;
-
-        while (!validPosition) {
-            // Randomly generate tree position
+		while (!validPosition) {
+			// Randomly generate tree position
 			position.x = rand() % int(modelMax.x - modelMin.x) + modelMin.x;
 			position.y = 0.0f;  // Assuming the trees are placed at ground level
 			position.z = rand() % int(modelMax.z - modelMin.z) + modelMin.z;
 
-            // Check if the position is outside the train's path zone
-            if (!(position.x > -trainPathWidth / 2.0f && position.x < trainPathWidth / 2.0f &&
-                  position.z > trainZMin && position.z < trainZMax)) {
-                // Further check if the position is too close to the path
-                bool isTooClose = false;
-                for (const auto& pathPoint : pathPoints) {
-                    // You can adjust the threshold distance (e.g., 5.0f) based on your needs
-                    float distance = glm::distance(position, pathPoint);
-                    if (distance < 5.0f) {  // Check if the tree is too close to the path
-                        isTooClose = true;
-                        break;
-                    }
-                }
-                if (!isTooClose) {
-                    validPosition = true;
-                }
-            }
-        }
+			// Check if the position is outside the train's path zone
+			if (!(position.x > -trainPathWidth / 2.0f && position.x < trainPathWidth / 2.0f &&
+				position.z > trainZMin && position.z < trainZMax)) {
+				// Further check if the position is too close to the path
+				bool isTooClose = false;
+				for (const auto& pathPoint : pathPoints) {
+					// You can adjust the threshold distance (e.g., 5.0f) based on your needs
+					float distance = glm::distance(position, pathPoint);
+					if (distance < 5.0f) {  // Check if the tree is too close to the path
+						isTooClose = true;
+						break;
+					}
+				}
+				if (!isTooClose) {
+					validPosition = true;
+				}
+			}
+		}
 
-        treePositions.push_back(position);
-    }
+		treePositions.push_back(position);
+		float scale = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 0.5f + 0.75f; // Random scale between 0.75 and 1.25
+		treeScales.push_back(scale); // Add this line
+	}
 }
 
 std::string grassLawnObjFileName;
@@ -473,15 +476,13 @@ int main()
 		}
 
 		for (int i = -1; i <= 1; ++i) {
-
 			glm::mat4 grassLawnModelMatrix_middle = glm::mat4(1.f);
 			grassLawnModelMatrix_middle = glm::translate(grassLawnModelMatrix_middle, glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
 			grassLawnModelMatrix_middle = glm::scale(grassLawnModelMatrix_middle, glm::vec3(3000.f, 1.f, 3000.f));
 			lightingWithTextureShader.setMat4("model", grassLawnModelMatrix_middle);
 			grassLawnObjModel.Draw(lightingWithTextureShader);
 
-			for (int j = -2; j < 3; ++j)
-			{
+			for (int j = -2; j < 3; ++j) {
 				glm::mat4 railwayModelMatrix = glm::mat4(1.f);
 				railwayModelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(1.f, 1.f, 4.f));
 				railwayModelMatrix = glm::translate(railwayModelMatrix, glm::vec3(-0.3, 0.2, j * railwayLength + (currentLawnSegment + i) * lawnLength / 4));
@@ -490,23 +491,21 @@ int main()
 				railwayObjModel.Draw(lightingWithTextureShader);
 			}
 
-			for (const auto& tree : treeData) {
+			for (size_t k = 0; k < treeData.size(); ++k) {
+				const auto& tree = treeData[k];
 				glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
-				//lightingWithTextureShader.setMat4("model", treeMatrix);
+				treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k])); // Apply the scale factor
+				lightingWithTextureShader.setMat4("model", treeMatrix);
 
-				//if (tree.second == 0)
-				//{
-					lightingWithTextureShader.setMat4("model", treeMatrix);
+				if (tree.second == 0) {
 					tree1ObjModel.Draw(lightingWithTextureShader);
-				//}
-				/*else
-				{
-					treeMatrix = glm::scale(treeMatrix + glm::mat4(1.0f), glm::vec3(1.0f));
-					lightingWithTextureShader.setMat4("model", treeMatrix);
+				}
+				else {
 					tree2ObjModel.Draw(lightingWithTextureShader);
-				}*/
+				}
 			}
 		}
+
 
 		// also draw the lamp object
 		lampShader.use();
