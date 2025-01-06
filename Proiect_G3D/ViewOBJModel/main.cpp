@@ -26,11 +26,12 @@
 #include "Camera.h"
 #include "ETrainMovementType.h"
 
-#include <SFML/Audio.hpp>
-
 #pragma comment (lib, "glfw3dll.lib")
 #pragma comment (lib, "glew32.lib")
 #pragma comment (lib, "OpenGL32.lib")
+
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -46,6 +47,23 @@ bool firstStation = false;
 GLuint ProjMatrixLocation, ViewMatrixLocation, WorldMatrixLocation;
 Camera* pCamera = nullptr;
 float trainAcceleration = 0;
+
+void PlayTrainSound(const std::string& soundFilePath)
+{
+	std::wstring soundFilePathW = std::wstring(soundFilePath.begin(), soundFilePath.end());
+	PlaySound(soundFilePathW.c_str(), NULL, SND_SYNC);
+}
+
+void PlayTrainMovementSound(const std::string& soundFilePath)
+{
+	std::wstring soundFilePathW = std::wstring(soundFilePath.begin(), soundFilePath.end());
+	PlaySound(soundFilePathW.c_str(), NULL, SND_SYNC);
+}
+
+void StopTrainSound()
+{
+	PlaySound(NULL, 0, 0);
+}
 
 void Cleanup()
 {
@@ -109,23 +127,53 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 	{
 		if (trainAcceleration < 0.2)
 		{
-			trainAcceleration += 0.001;
+			trainAcceleration += 0.01;
 			if (trainAcceleration > 0.5) // Clamp to 0.5
 				trainAcceleration = 0.5;
 			std::cout << trainAcceleration << '\n';
 		}
+		std::string trainMovementFilePath = "C:\\Users\\Tudor\\Desktop\\Proiect-G3D\\Proiect_G3D\\Sound\\train_sound.wav"; // Use the correct path to your train movement sound file
+		std::string backgroundFilePath = "C:\\Users\\Tudor\\Desktop\\Proiect-G3D\\Proiect_G3D\\Sound\\rain.wav"; // Use the correct path to your background sound file
 
+		// Stop the background sound
+		PlaySound(NULL, 0, 0);
+
+		// Play the train movement sound synchronously
+		PlayTrainMovementSound(trainMovementFilePath);
+
+		// Resume the background sound
+		std::wstring backgroundFilePathW = std::wstring(backgroundFilePath.begin(), backgroundFilePath.end());
+		PlaySound(backgroundFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
 	}
+
 	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
 	{
 		if (trainAcceleration > 0)
 		{
-			trainAcceleration -= 0.002;
+			trainAcceleration -= 0.01;
 			if (trainAcceleration < 0) // Clamp to 0
 				trainAcceleration = 0;
 			std::cout << trainAcceleration << '\n';
 		}
 	}
+
+	// Check for 'H' key press to play the sound
+	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
+	{
+		std::string hornFilePath = "C:\\Users\\Tudor\\Desktop\\Proiect-G3D\\Proiect_G3D\\Sound\\horn.wav"; // Use the correct path to your horn sound file
+		std::string backgroundFilePath = "C:\\Users\\Tudor\\Desktop\\Proiect-G3D\\Proiect_G3D\\Sound\\rain.wav"; // Use the correct path to your background sound file
+
+		// Stop the background sound
+		PlaySound(NULL, 0, 0);
+
+		// Play the horn sound synchronously
+		PlayTrainSound(hornFilePath);
+
+		// Resume the background sound
+		std::wstring backgroundFilePathW = std::wstring(backgroundFilePath.begin(), backgroundFilePath.end());
+		PlaySound(backgroundFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
+	}
+
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -236,6 +284,7 @@ int main()
 
 	glEnable(GL_DEPTH_TEST);
 
+
 	// Create camera
 	pCamera = new Camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.0, 0.0, 3.0));
 	glm::vec3 cameraPos = pCamera->GetPosition();
@@ -249,6 +298,10 @@ int main()
 
 	std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
 	std::string currentPath = converter.to_bytes(wscurrentPath);
+
+	std::string musicFilePath(currentPath + "\\Sound\\rain.wav"); // Use an absolute path to your .wav file
+	std::wstring musicFilePathW = std::wstring(musicFilePath.begin(), musicFilePath.end());
+	PlaySound(musicFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
 
 	Shader lightingShader((currentPath + "\\Shaders\\PhongLight.vs").c_str(), (currentPath + "\\Shaders\\PhongLight.fs").c_str());
 	Shader lightingWithTextureShader((currentPath + "\\Shaders\\PhongLightWithTexture.vs").c_str(), (currentPath + "\\Shaders\\PhongLightWithTexture.fs").c_str());
@@ -270,22 +323,22 @@ int main()
 	loadModels(currentPath);
 
 	// Construct the file path for the background music
-	std::string musicFilePath = currentPath + "\\Sound\\train_sound.mp3";
-	std::cout << "Loading background music from: " << musicFilePath << std::endl;
+	//std::string musicFilePath = currentPath + "\\Sound\\train_sound.mp3";
+	//std::cout << "Loading background music from: " << musicFilePath << std::endl;
 
 	//sf::Sound sound;
 	//sf::SoundBuffer sound_buffer;
 	//sound_buffer.loadFromFile(musicFilePath);
 
 	// Load background music
-	sf::Music backgroundMusic;
-	if (!backgroundMusic.openFromFile(musicFilePath))
-	{
-		std::cerr << "Error loading background music file" << std::endl;
-		//return -1;
-	}
-	backgroundMusic.setLoop(true);
-	backgroundMusic.play();
+	//sf::Music backgroundMusic;
+	//if (!backgroundMusic.openFromFile(musicFilePath))
+	//{
+	//	std::cerr << "Error loading background music file" << std::endl;
+	//	//return -1;
+	//}
+	//backgroundMusic.setLoop(true);
+	//backgroundMusic.play();
 
 	// Load sound
 	//sf::SoundBuffer buffer;
@@ -485,6 +538,7 @@ int main()
 		glfwPollEvents();
 	}
 
+	PlaySound(NULL, 0, 0); // Stop the music
 	Cleanup();
 	// glfw: terminate, clearing all previously allocated GLFW resources
 	glfwTerminate();
