@@ -26,6 +26,8 @@
 #include "Camera.h"
 #include "ETrainMovementType.h"
 
+#include <SFML/Audio.hpp>
+
 #pragma comment (lib, "glfw3dll.lib")
 #pragma comment (lib, "glew32.lib")
 #pragma comment (lib, "OpenGL32.lib")
@@ -266,6 +268,36 @@ int main()
 
 
 	loadModels(currentPath);
+
+	// Construct the file path for the background music
+	std::string musicFilePath = currentPath + "\\Sound\\train_sound.mp3";
+	std::cout << "Loading background music from: " << musicFilePath << std::endl;
+
+	//sf::Sound sound;
+	//sf::SoundBuffer sound_buffer;
+	//sound_buffer.loadFromFile(musicFilePath);
+
+	// Load background music
+	sf::Music backgroundMusic;
+	if (!backgroundMusic.openFromFile(musicFilePath))
+	{
+		std::cerr << "Error loading background music file" << std::endl;
+		//return -1;
+	}
+	backgroundMusic.setLoop(true);
+	backgroundMusic.play();
+
+	// Load sound
+	//sf::SoundBuffer buffer;
+	//if (!buffer.loadFromFile(currentPath + "\\Sound\\train_sound.wav"))
+	//{
+	//	std::cerr << "Error loading sound file" << std::endl;
+	//	return -1;
+	//}
+
+	//sf::Sound sound;
+	//sound.setBuffer(buffer);
+	//sound.play();
 
 	//draw trees
 	float trainPathWidth = 10.0f;
