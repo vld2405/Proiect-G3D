@@ -3,11 +3,13 @@
 #include <Windows.h>
 #include <locale>
 #include <codecvt>
+#include <string>
 
 #include <stdlib.h> // necesare pentru citirea shader-elor
 #include <stdio.h>
 #include <math.h> 
 #include <chrono>
+#include <thread>
 
 #include <GL/glew.h>
 
@@ -40,10 +42,12 @@ const unsigned int SCR_HEIGHT = 1200;
 // timing
 double deltaTime = 0.0f;	// time between current frame and last frame
 std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
+auto lastHornTime = std::chrono::steady_clock::now();
 
 bool ThirdPersonFlag = true;
 bool FirstPersonFlag = false;
 bool FreeCameraFlag = false;
+bool hornKeyPressed = false;
 
 bool drawStation = false;
 bool firstStation = false;
@@ -53,6 +57,7 @@ Camera* pCamera = nullptr;
 float trainAcceleration = 0;
 
 const int trainStationTileOffset = 4;
+const int hornCooldownMs = 1000; // 1-second cooldown
 static int trainStationIndex = 0;
 
 std::vector<glm::vec3> treePositions;
@@ -88,11 +93,27 @@ void SetVolume(float volume)
 	waveOutSetVolume(0, dwVolume); // Set master volume
 }
 
-void PlayTrainSound(const std::string& soundFilePath)
+void PlayTrainSound(const std::string& soundFilePath, const std::string& movingSoundFilePath, const std::string& idleSoundFilePath)
 {
-	std::wstring soundFilePathW = std::wstring(soundFilePath.begin(), soundFilePath.end());
-	PlaySound(soundFilePathW.c_str(), NULL, SND_SYNC);
+	// Convert the file paths to wide strings
+	std::wstring hornFilePathW = std::wstring(hornFilePath.begin(), hornFilePath.end());
+	std::wstring idleSoundFilePathW = std::wstring(idleMusicFilePath.begin(), idleMusicFilePath.end());
+	std::wstring movingSoundFilePathW = std::wstring(movingTrainSoundFilePath.begin(), movingTrainSoundFilePath.end());
+
+	// Play the horn sound synchronously (blocking the thread it's on)
+	PlaySound(hornFilePathW.c_str(), NULL, SND_SYNC);
+
+	// After the horn finishes, check if the train is moving
+	if (trainAcceleration > 0) {
+		// If the train is moving, play the moving sound
+		PlaySound(movingSoundFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
+	}
+	else {
+		// If the train is not moving, play the idle sound
+		PlaySound(idleSoundFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
+	}
 }
+	
 
 void PlayTrainMovementSound(const std::string& soundFilePath)
 {
@@ -119,6 +140,10 @@ void Cleanup()
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
+std::wstring ConvertToWideString(const std::string& str) {
+	return std::wstring(str.begin(), str.end());
+}
 
 void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 {
@@ -165,7 +190,7 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 		pCamera->Reset(width, height);
 	}
 
-	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
 	{
 		if (trainAcceleration < 20)
 		{
@@ -188,17 +213,22 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
-	{
-		// Stop the background sound
-		PlaySound(NULL, 0, 0);
+    {
+        auto now = std::chrono::steady_clock::now();
+        if (!hornKeyPressed && std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHornTime).count() > hornCooldownMs)
+        {
+            hornKeyPressed = true;
+            lastHornTime = now;
 
-		// Play the horn sound asynchronously
-		PlayTrainSound(hornFilePath);
-
-		// Resume the background sound
-		std::wstring backgroundFilePathW = std::wstring(idleMusicFilePath.begin(), idleMusicFilePath.end());
-		PlaySound(backgroundFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
-	}
+            // Play the horn sound on a separate thread
+            std::thread hornThread(PlayTrainSound, hornFilePath, movingTrainSoundFilePath, idleMusicFilePath);
+            hornThread.detach();
+        }
+    }
+    else if (glfwGetKey(window, GLFW_KEY_H) == GLFW_RELEASE)
+    {
+        hornKeyPressed = false;
+    }
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
