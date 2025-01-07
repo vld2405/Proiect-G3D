@@ -80,8 +80,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\_external\GLEW;..\_external\glfw;..\_external\glm;..\_external\stb;$(IncludePath)</IncludePath>
-    <LibraryPath>..\_external\GLFW\x64;..\_external\GLEW\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\_external\GLEW;..\_external\glfw;..\_external\glm;..\_external\stb;..\_external\freeglut\include;$(IncludePath)</IncludePath>
+    <LibraryPath>..\_external\GLFW\x64;..\_external\GLEW\x64;..\_external\freeglut\lib\x64;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -159,19 +159,21 @@
     <ClCompile Include="Train.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Shaders\Skybox.fs">
+    <None Include="..\Shaders\Skybox.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="..\Shaders\Skybox.vs">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="packages.config" />
-    <None Include="particle.fs">
+    <None Include="particle.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>
     <None Include="particle.vs">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </None>
+    <None Include="text.frag" />
+    <None Include="text.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />

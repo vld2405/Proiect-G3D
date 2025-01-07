@@ -42,7 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
-    <None Include="..\Shaders\Skybox.fs">
+    <None Include="..\Shaders\Skybox.frag">
       <Filter>Resource Files</Filter>
     </None>
     <None Include="..\Shaders\Skybox.vs">
@@ -51,8 +51,14 @@
     <None Include="particle.vs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="particle.fs">
+    <None Include="particle.frag">
       <Filter>Resource Files</Filter>
+    </None>
+    <None Include="text.frag">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="text.vs">
+      <Filter>Header Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
