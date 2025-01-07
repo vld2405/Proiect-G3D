@@ -54,11 +54,11 @@
     <None Include="particle.frag">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="text.frag">
-      <Filter>Header Files</Filter>
-    </None>
     <None Include="text.vs">
-      <Filter>Header Files</Filter>
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="text.fs">
+      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
