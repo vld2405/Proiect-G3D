@@ -636,33 +636,7 @@ int main()
 			firstStation == true;
 		}
 
-		if ((currentLawnSegment + 1) % 4 == 2) {
-			int startSegment = currentLawnSegment;
-			int endSegment = currentLawnSegment + 1;
-			activeStations.push_back({ startSegment, endSegment });
-		}
-
-		activeStations.erase(
-			std::remove_if(activeStations.begin(), activeStations.end(),
-				[&](const std::pair<int, int>& range) {
-					return currentLawnSegment > range.second;
-				}),
-			activeStations.end());
-
-		for (const auto& range : activeStations) {
-			if (currentLawnSegment >= range.first && currentLawnSegment <= range.second) {
-				glm::mat4 trainStationModelMatrix = glm::mat4(1.0f);
-				trainStationModelMatrix = glm::translate(trainStationModelMatrix, glm::vec3(-11.0f, 0.40f, range.first * lawnLength));
-				trainStationModelMatrix = glm::scale(trainStationModelMatrix, glm::vec3(1.0f));
-				trainStationModelMatrix = glm::rotate(trainStationModelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-				lightingWithTextureShader.setMat4("model", trainStationModelMatrix);
-
-				int stationIndex = (range.first / 4) % trainStationNames.size();
-				trainStationObjModels[stationIndex].Draw(lightingWithTextureShader);
-			}
-		}
-
-		for (int i = -1; i <= 2; ++i) {
+		for (int i = -1; i <= 3; ++i) {
 			glm::mat4 grassLawnModelMatrix_middle = glm::mat4(1.f);
 			grassLawnModelMatrix_middle = glm::translate(grassLawnModelMatrix_middle, glm::vec3(0.f, -0.2f, (currentLawnSegment + i) * lawnLength));
 			grassLawnModelMatrix_middle = glm::scale(grassLawnModelMatrix_middle, glm::vec3(3000.f, 500.f, 3000.f));
@@ -678,7 +652,7 @@ int main()
 				railwayObjModel.Draw(lightingWithTextureShader);
 			}
 
-			if ((currentLawnSegment + i - 1) % 4 != 2) {
+			if ((currentLawnSegment + i + 2) % 4 != 2) {
 				for (size_t k = 0; k < treeData.size(); ++k) {
 					const auto& tree = treeData[k];
 					glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
@@ -721,6 +695,15 @@ int main()
 					lightingWithTextureShader.setMat4("model", rockMatrix);
 					rockObjModel.Draw(lightingWithTextureShader);
 				}
+
+				glm::mat4 trainStationModelMatrix = glm::mat4(1.0f);
+				trainStationModelMatrix = glm::translate(trainStationModelMatrix, glm::vec3(-11.0f, 0.40f, (currentLawnSegment + i) * lawnLength));
+				trainStationModelMatrix = glm::scale(trainStationModelMatrix, glm::vec3(2.0f));
+				trainStationModelMatrix = glm::rotate(trainStationModelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+				lightingWithTextureShader.setMat4("model", trainStationModelMatrix);
+
+				int stationIndex = ((currentLawnSegment + i) / 4) % trainStationNames.size();
+				trainStationObjModels[stationIndex].Draw(lightingWithTextureShader);
 			}
 		}
 
