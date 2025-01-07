@@ -40,6 +40,9 @@
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 1200;
 
+std::string rockObjFileName;
+Model rockObjModel;
+
 // timing
 double deltaTime = 0.0f;	// time between current frame and last frame
 std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
@@ -342,6 +345,9 @@ void loadModels(std::string currentPath)
 	tree2ObjFileName = (currentPath + "\\Models\\Tree2\\Tree2.obj");
 	tree2ObjModel = Model(tree2ObjFileName, false);
 
+	rockObjFileName = (currentPath + "\\Models\\Rock1\\Rock1.obj");
+	rockObjModel = Model(rockObjFileName, false);
+
 	for (int i = 0; i < 6; ++i)
 	{
 		trainStationObjFileName = (currentPath + "\\Models\\Trainstation_" + trainStationNames[i] + "\\train_station.obj");
@@ -476,6 +482,8 @@ int main()
 	// RENDER LOOP
 
 	bool isMoving = false;
+
+	const float rockScaleFactor = 0.4f; // Adjust this value to make the rocks smaller
 
 	while (!glfwWindowShouldClose(window)) {
 
@@ -636,6 +644,13 @@ int main()
 					else {
 						tree2ObjModel.Draw(lightingWithTextureShader);
 					}
+
+					// Draw the rock at a slightly offset position from the tree
+					glm::vec3 rockPosition = tree.first + glm::vec3(1.0f, 0.0f, 1.0f); // Adjust the offset as needed
+					glm::mat4 rockMatrix = glm::translate(glm::mat4(1.0f), rockPosition + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
+					rockMatrix = glm::scale(rockMatrix, glm::vec3(treeScales[k] * rockScaleFactor)); // Apply the rock scale factor
+					lightingWithTextureShader.setMat4("model", rockMatrix);
+					rockObjModel.Draw(lightingWithTextureShader);
 				}
 			}
 			else {
@@ -651,6 +666,13 @@ int main()
 					else {
 						tree2ObjModel.Draw(lightingWithTextureShader);
 					}
+
+					// Draw the rock at a slightly offset position from the tree
+					glm::vec3 rockPosition = tree.first + glm::vec3(1.0f, 0.0f, 1.0f); // Adjust the offset as needed
+					glm::mat4 rockMatrix = glm::translate(glm::mat4(1.0f), rockPosition + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
+					rockMatrix = glm::scale(rockMatrix, glm::vec3(treeScales[k] * rockScaleFactor)); // Apply the rock scale factor
+					lightingWithTextureShader.setMat4("model", rockMatrix);
+					rockObjModel.Draw(lightingWithTextureShader);
 				}
 			}
 		}
