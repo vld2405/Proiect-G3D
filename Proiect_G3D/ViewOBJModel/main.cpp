@@ -10,6 +10,7 @@
 #include <math.h> 
 #include <chrono>
 #include <thread>
+#include <unordered_map>
 
 #include <GL/glew.h>
 
@@ -27,8 +28,6 @@
 #include "FlyingCube.h"
 #include "Camera.h"
 #include "ETrainMovementType.h"
-#include "Particle.h"
-#include <vector>
 
 #pragma comment (lib, "glfw3dll.lib")
 #pragma comment (lib, "glew32.lib")
@@ -60,9 +59,9 @@ float trainAcceleration = 0;
 
 const int trainStationTileOffset = 4;
 const int hornCooldownMs = 1000; // 1-second cooldown
-static int trainStationIndex = 0;
 
 std::vector<glm::vec3> treePositions;
+std::vector<glm::vec3> treePositionsTrainStation;
 std::vector<float> treeScales;
 
 
@@ -82,6 +81,7 @@ Model railwayObjModel;
 std::vector<Model> trainStationObjModels;
 
 std::vector<std::string> trainStationNames = { "Brasov", "Predeal", "Sinaia", "Campina", "Ploiesti", "Bucuresti" };
+std::vector<std::pair<int, int>> activeStations;
 
 void SetVolume(float volume)
 {
@@ -137,84 +137,6 @@ void StopTrainSound()
 void Cleanup()
 {
 	delete pCamera;
-}
-
-unsigned int quadVAO = 0;
-unsigned int quadVBO;
-
-void RenderQuad() {
-	if (quadVAO == 0) {
-		float quadVertices[] = {
-			// positions
-			-0.05f,  0.05f, 0.0f,
-			-0.05f, -0.05f, 0.0f,
-			 0.05f, -0.05f, 0.0f,
-
-			-0.05f,  0.05f, 0.0f,
-			 0.05f, -0.05f, 0.0f,
-			 0.05f,  0.05f, 0.0f
-		};
-
-		glGenVertexArrays(1, &quadVAO);
-		glGenBuffers(1, &quadVBO);
-		glBindVertexArray(quadVAO);
-		glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	}
-	glBindVertexArray(quadVAO);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glBindVertexArray(0);
-}
-
-// Number of particles
-const int NUM_PARTICLES = 1000;
-std::vector<Particle> particles(NUM_PARTICLES);
-
-void InitParticles() {
-	for (auto& particle : particles) {
-		particle.position = glm::vec3(
-			static_cast<float>(rand() % 100 - 50),
-			static_cast<float>(rand() % 50 + 50),
-			static_cast<float>(rand() % 100 - 50)
-		);
-		particle.velocity = glm::vec3(0.0f, -1.0f, 0.0f);
-		particle.life = static_cast<float>(rand() % 100) / 100.0f;
-	}
-}
-
-void UpdateParticles(float deltaTime) {
-	for (auto& particle : particles) {
-		particle.position += particle.velocity * deltaTime;
-		particle.life -= deltaTime;
-
-		// Reset particle if it has "died"
-		if (particle.life <= 0.0f) {
-			particle.position = glm::vec3(
-				static_cast<float>(rand() % 100 - 50),
-				static_cast<float>(rand() % 50 + 50),
-				static_cast<float>(rand() % 100 - 50)
-			);
-			particle.life = static_cast<float>(rand() % 100) / 100.0f;
-		}
-	}
-}
-
-void RenderParticles(Shader& shader) {
-	shader.use();
-	shader.setMat4("projection", pCamera->GetProjectionMatrix());
-	shader.setMat4("view", pCamera->GetViewMatrix());
-
-	for (const auto& particle : particles) {
-		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, particle.position);
-		shader.setMat4("model", model);
-
-		// Render a simple quad or point for the particle
-		// Assuming you have a function to render a quad
-		RenderQuad();
-	}
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -315,7 +237,49 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {
 }
 
-void GenerateTreePositions(float trainPathWidth, float trainPathHeight, float trainZMin, float trainZMax, int treeCount, const glm::vec3& modelMin, const glm::vec3& modelMax, const std::vector<glm::vec3>& pathPoints) {
+struct Station {
+	glm::vec3 position;  // Position of the station's center
+	glm::vec3 size;      // Width, Height, Depth of the station
+};
+
+void GenerateLawnSegmentTreePositions(float trainPathWidth, float trainPathHeight, float trainZMin, float trainZMax, int treeCount,
+	const glm::vec3& modelMin, const glm::vec3& modelMax,
+	const std::vector<glm::vec3>& pathPoints, const Station& station,
+	const glm::vec3& lawnSegmentMin, const glm::vec3& lawnSegmentMax)
+{
+	for (int i = 0; i < treeCount; ++i) {
+		glm::vec3 position;
+		bool validPosition = false;
+
+		while (!validPosition) {
+			// Randomly generate tree position within the LawnSegment boundaries
+			position.x = rand() % int(lawnSegmentMax.x - lawnSegmentMin.x) + lawnSegmentMin.x;
+			position.y = 0.0f;  // Trees placed at ground level
+			position.z = rand() % int(lawnSegmentMax.z - lawnSegmentMin.z) + lawnSegmentMin.z;
+
+			// Check if the position is outside the train's path zone
+			if (!(position.x > -trainPathWidth / 2.0f && position.x < trainPathWidth / 2.0f &&
+				position.z > trainZMin && position.z < trainZMax)) {
+				bool isInStationArea = position.x > (station.position.x - station.size.x / 2.0f) &&
+					position.x < (station.position.x + station.size.x / 2.0f) &&
+					position.z >(station.position.z - station.size.z / 2.0f) &&
+					position.z < (station.position.z + station.size.z / 2.0f);
+
+				if (!isInStationArea) {
+					validPosition = true;
+				}			
+			}
+		}
+
+		// Store the valid tree position and scale
+		treePositionsTrainStation.push_back(position);
+		float scale = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 0.5f + 0.75f; // Random scale between 0.75 and 1.25
+		treeScales.push_back(scale);
+	}
+}
+
+void GenerateTreePositions(float trainPathWidth, float trainPathHeight, float trainZMin, float trainZMax, int treeCount, const glm::vec3& modelMin, const glm::vec3& modelMax, const std::vector<glm::vec3>& pathPoints, const Station station)
+{
 	for (int i = 0; i < treeCount; ++i) {
 		glm::vec3 position;
 		bool validPosition = false;
@@ -329,16 +293,17 @@ void GenerateTreePositions(float trainPathWidth, float trainPathHeight, float tr
 			// Check if the position is outside the train's path zone
 			if (!(position.x > -trainPathWidth / 2.0f && position.x < trainPathWidth / 2.0f &&
 				position.z > trainZMin && position.z < trainZMax)) {
+
 				// Further check if the position is too close to the path
 				bool isTooClose = false;
 				for (const auto& pathPoint : pathPoints) {
-					// You can adjust the threshold distance (e.g., 5.0f) based on your needs
 					float distance = glm::distance(position, pathPoint);
 					if (distance < 5.0f) {  // Check if the tree is too close to the path
 						isTooClose = true;
 						break;
 					}
 				}
+
 				if (!isTooClose) {
 					validPosition = true;
 				}
@@ -350,6 +315,8 @@ void GenerateTreePositions(float trainPathWidth, float trainPathHeight, float tr
 		treeScales.push_back(scale);
 	}
 }
+
+
 
 void loadSounds(std::string currentPath)
 {
@@ -418,7 +385,6 @@ int main()
 	glm::vec3 cameraPos = pCamera->GetPosition();
 	//pCamera->SetOrientation(90.f, -20.0f);
 
-	
 
 	wchar_t buffer[MAX_PATH];
 	GetCurrentDirectoryW(MAX_PATH, buffer);
@@ -478,7 +444,12 @@ int main()
 		pathPoints.push_back(glm::vec3(0.0f, 0.0f, z)); 
 	}
 
-	GenerateTreePositions(trainPathWidth, trainPathHeight, trainZMin, trainZMax, treeCount, modelMin, modelMax, pathPoints);
+	Station trainStation = {
+		glm::vec3(-11.0f, 0.40f, 0.80f),  // Position of the station
+		glm::vec3(25.0f, 5.0f, 50.0f)  // Size (width, height, depth)
+	};
+
+	GenerateTreePositions(trainPathWidth, trainPathHeight, trainZMin, trainZMax, treeCount, modelMin, modelMax, pathPoints, trainStation);
 
 	std::vector<std::pair<glm::vec3, int>> treeData; // Position + Type
 	for (const auto& pos : treePositions) {
@@ -486,13 +457,25 @@ int main()
 		treeData.emplace_back(pos, randNum); // Store position and type
 	}
 
+	treeCount = 80;
+	for (float z = trainZMin; z <= trainZMax; z += 1.0f) {
+		pathPoints.push_back(glm::vec3(0.0f, 0.0f, z));
+	}
+	GenerateLawnSegmentTreePositions(trainPathWidth, trainPathHeight, trainZMin, trainZMax, treeCount, modelMin, modelMax, pathPoints, trainStation, modelMin, modelMax);
+
+
+	std::vector<std::pair<glm::vec3, int>> treeData2; // Position + Type
+	for (const auto& pos : treePositionsTrainStation) {
+		int randNum = rand() % 2; // Randomly choose 0 or 1
+		treeData2.emplace_back(pos, randNum); // Store position and type
+	}
+
+
 	glm::vec3 trainPos{-2.5f, 0.0f, -4.0f};
 
 	// RENDER LOOP
 
 	bool isMoving = false;
-
-	InitParticles();
 
 	while (!glfwWindowShouldClose(window)) {
 
@@ -527,8 +510,6 @@ int main()
 		glDepthMask(GL_TRUE);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
-
-		UpdateParticles(deltaTime);
 
 		lightingShader.use();
 		lightingShader.SetVec3("objectColor", 0.5f, 1.0f, 0.31f);
@@ -581,15 +562,14 @@ int main()
 			glm::vec3 cameraOffset(2.25f, 4.f, -4.5f);
 			cameraPos = cameraOffset + trainPos;
 		}
-		
 		const float lawnLength = 60.0f;
-		const float lawnHalfLength = lawnLength / 2.0f; // midpoint of lawn
+		const float lawnHalfLength = lawnLength * 0.75f;  // midpoint of lawn
 		const float railwayLength = 2.82f;
-		
+
 		static int currentLawnSegment = 0;
 
 		// Check if the train has passed half of the current lawn
-		if (trainPos.z > (currentLawnSegment + 1) * lawnLength - lawnHalfLength) {
+		if (trainPos.z > (currentLawnSegment + 1) * lawnLength + lawnHalfLength) {
 			currentLawnSegment++;
 		}
 		else if (trainPos.z < currentLawnSegment * lawnLength - lawnHalfLength) {
@@ -601,23 +581,30 @@ int main()
 			firstStation == true;
 		}
 
-		if (currentLawnSegment % 4 == 2 || currentLawnSegment == 0)
-		{
-			drawStation = true;
+		if ((currentLawnSegment + 1) % 4 == 2) {
+			int startSegment = currentLawnSegment;
+			int endSegment = currentLawnSegment + 1;
+			activeStations.push_back({ startSegment, endSegment });
 		}
 
-		if ((drawStation == true && currentLawnSegment % 4 == 2))
-		{
-			glm::mat4 trainStationModelMatrix = glm::mat4(1.0f);
-			trainStationModelMatrix = glm::translate(trainStationModelMatrix, glm::vec3(-11.0f, 0.40f, (currentLawnSegment + 1) * lawnLength));
-			trainStationModelMatrix = glm::scale(trainStationModelMatrix + glm::mat4(1.f), glm::vec3(1.0f));
-			trainStationModelMatrix = glm::rotate(trainStationModelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			lightingWithTextureShader.setMat4("model", trainStationModelMatrix);
-			
-			trainStationObjModels[trainStationIndex % trainStationObjModels.size()].Draw(lightingWithTextureShader);
-			
-			trainStationIndex++;
-			drawStation = false;
+		activeStations.erase(
+			std::remove_if(activeStations.begin(), activeStations.end(),
+				[&](const std::pair<int, int>& range) {
+					return currentLawnSegment > range.second; 
+				}),
+			activeStations.end());
+
+		for (const auto& range : activeStations) {
+			if (currentLawnSegment >= range.first && currentLawnSegment <= range.second) {
+				glm::mat4 trainStationModelMatrix = glm::mat4(1.0f);
+				trainStationModelMatrix = glm::translate(trainStationModelMatrix, glm::vec3(-11.0f, 0.40f, range.first * lawnLength));
+				trainStationModelMatrix = glm::scale(trainStationModelMatrix, glm::vec3(1.0f));
+				trainStationModelMatrix = glm::rotate(trainStationModelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+				lightingWithTextureShader.setMat4("model", trainStationModelMatrix);
+
+				int stationIndex = (range.first / 4) % trainStationNames.size();
+				trainStationObjModels[stationIndex].Draw(lightingWithTextureShader);
+			}
 		}
 
 		for (int i = -1; i <= 2; ++i) {
@@ -636,28 +623,44 @@ int main()
 				railwayObjModel.Draw(lightingWithTextureShader);
 			}
 
-			for (size_t k = 0; k < treeData.size(); ++k) {
-				const auto& tree = treeData[k];
-				glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
-				treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k])); // Apply the scale factor
-				lightingWithTextureShader.setMat4("model", treeMatrix);
+			if ((currentLawnSegment + i - 1) % 4 != 2) {
+				for (size_t k = 0; k < treeData.size(); ++k) {
+					const auto& tree = treeData[k];
+					glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
+					treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k])); // Apply the scale factor
+					lightingWithTextureShader.setMat4("model", treeMatrix);
 
-				if (tree.second == 0) {
-					tree1ObjModel.Draw(lightingWithTextureShader);
+					if (tree.second == 0) {
+						tree1ObjModel.Draw(lightingWithTextureShader);
+					}
+					else {
+						tree2ObjModel.Draw(lightingWithTextureShader);
+					}
 				}
-				else {
-					tree2ObjModel.Draw(lightingWithTextureShader);
+			}
+			else {
+				for (size_t k = 0; k < treeData2.size(); ++k) {
+					const auto& tree = treeData2[k];
+					glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
+					treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k])); // Apply the scale factor
+					lightingWithTextureShader.setMat4("model", treeMatrix);
+
+					if (tree.second == 0) {
+						tree1ObjModel.Draw(lightingWithTextureShader);
+					}
+					else {
+						tree2ObjModel.Draw(lightingWithTextureShader);
+					}
 				}
 			}
 		}
+
 
 
 		// also draw the lamp object
 		lampShader.use();
 		lampShader.setMat4("projection", pCamera->GetProjectionMatrix());
 		lampShader.setMat4("view", pCamera->GetViewMatrix());
-
-		RenderParticles(lightingShader);
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		glfwSwapBuffers(window);
