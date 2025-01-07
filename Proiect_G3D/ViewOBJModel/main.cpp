@@ -478,6 +478,7 @@ int main()
 
 
 	glm::vec3 trainPos{-2.5f, 0.0f, -4.0f};
+	glm::vec3 lightPos(0.0f, 10.0f, 10.0f);
 
 	// RENDER LOOP
 
@@ -519,7 +520,12 @@ int main()
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 
+		// Update light position to always be above the train
+		lightPos = glm::vec3(trainPos.x, trainPos.y + 1000.0f, trainPos.z);
+
+
 		lightingShader.use();
+		lightingShader.SetVec3("lightPos", lightPos);
 		lightingShader.SetVec3("objectColor", 0.5f, 1.0f, 0.31f);
 		lightingShader.SetVec3("lightColor", 1.0f, 1.0f, 1.0f);
 		//lightingShader.SetVec3("lightPos", lightPos);
@@ -533,7 +539,7 @@ int main()
 		lightingWithTextureShader.use();
 		lightingWithTextureShader.SetVec3("objectColor", 0.5f, 1.0f, 0.31f);
 		lightingWithTextureShader.SetVec3("lightColor", 1.0f, 1.0f, 1.0f);
-		//lightingWithTextureShader.SetVec3("lightPos", lightPos);
+		lightingWithTextureShader.SetVec3("lightPos", lightPos);
 		lightingWithTextureShader.SetVec3("viewPos", pCamera->GetPosition());
 		lightingWithTextureShader.setInt("texture_diffuse1", 0);
 		lightingWithTextureShader.setMat4("projection", pCamera->GetProjectionMatrix());
@@ -617,8 +623,8 @@ int main()
 
 		for (int i = -1; i <= 2; ++i) {
 			glm::mat4 grassLawnModelMatrix_middle = glm::mat4(1.f);
-			grassLawnModelMatrix_middle = glm::translate(grassLawnModelMatrix_middle, glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
-			grassLawnModelMatrix_middle = glm::scale(grassLawnModelMatrix_middle, glm::vec3(3000.f, 1.f, 3000.f));
+			grassLawnModelMatrix_middle = glm::translate(grassLawnModelMatrix_middle, glm::vec3(0.f, -0.2f, (currentLawnSegment + i) * lawnLength));
+			grassLawnModelMatrix_middle = glm::scale(grassLawnModelMatrix_middle, glm::vec3(3000.f, 500.f, 3000.f));
 			lightingWithTextureShader.setMat4("model", grassLawnModelMatrix_middle);
 			grassLawnObjModel.Draw(lightingWithTextureShader);
 
