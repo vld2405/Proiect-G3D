@@ -356,12 +356,12 @@ void loadModels(std::string currentPath)
 	railwayObjModel = Model(railwayObjFileName, false);
 
 	tree1ObjFileName = (currentPath + "\\Models\\Tree1\\Tree1.obj");
-	tree1ObjModel = Model(tree1ObjFileName, false);
+	tree1ObjModel = Model(tree1ObjFileName, true);
 
 	tree2ObjFileName = (currentPath + "\\Models\\Tree2\\Tree2.obj");
 	tree2ObjModel = Model(tree2ObjFileName, false);
 
-	rockObjFileName = (currentPath + "\\Models\\Rock\\Rock1.obj");
+	rockObjFileName = (currentPath + "\\Models\\Rock1\\Rock1.obj");
 	rockObjModel = Model(rockObjFileName, false);
 
 	mountainObjFileName = (currentPath + "\\Models\\Mountain\\mount.obj");
@@ -661,11 +661,23 @@ int main()
 
 					if (tree.second == 0) {
 						tree1ObjModel.Draw(lightingWithTextureShader);
+
+						Texture treeTexture = tree1ObjModel.textures_loaded[0];
+						glActiveTexture(GL_TEXTURE0); // for tree texture
+
+						glActiveTexture(GL_TEXTURE0); // for tree texture
+						glBindTexture(GL_TEXTURE_2D, treeTexture.id); // Bind tree texture
 					}
 					else {
 						tree2ObjModel.Draw(lightingWithTextureShader);
-					}
 
+						Texture treeTexture = tree2ObjModel.textures_loaded[0];
+						glActiveTexture(GL_TEXTURE0); // for tree texture
+
+						glActiveTexture(GL_TEXTURE0); // for tree texture
+						glBindTexture(GL_TEXTURE_2D, treeTexture.id); // Bind tree texture
+					}
+					
 					// Draw the rock at a slightly offset position from the tree
 					glm::vec3 rockPosition = tree.first + glm::vec3(1.0f, 0.0f, 1.0f); // Adjust the offset as needed
 					glm::mat4 rockMatrix = glm::translate(glm::mat4(1.0f), rockPosition + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
@@ -683,9 +695,21 @@ int main()
 
 					if (tree.second == 0) {
 						tree1ObjModel.Draw(lightingWithTextureShader);
+
+						Texture treeTexture = tree1ObjModel.textures_loaded[0];
+						glActiveTexture(GL_TEXTURE0); // for tree texture
+
+						glActiveTexture(GL_TEXTURE0); // for tree texture
+						glBindTexture(GL_TEXTURE_2D, treeTexture.id); // Bind tree texture
 					}
 					else {
 						tree2ObjModel.Draw(lightingWithTextureShader);
+
+						Texture treeTexture = tree2ObjModel.textures_loaded[0];
+						glActiveTexture(GL_TEXTURE0); // for tree texture
+
+						glActiveTexture(GL_TEXTURE0); // for tree texture
+						glBindTexture(GL_TEXTURE_2D, treeTexture.id); // Bind tree texture
 					}
 
 					// Draw the rock at a slightly offset position from the tree
