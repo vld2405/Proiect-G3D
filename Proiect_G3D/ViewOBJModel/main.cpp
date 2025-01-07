@@ -40,8 +40,7 @@
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 1200;
 
-std::string rockObjFileName;
-Model rockObjModel;
+
 
 // timing
 double deltaTime = 0.0f;	// time between current frame and last frame
@@ -53,6 +52,7 @@ bool FirstPersonFlag = false;
 bool FreeCameraFlag = false;
 bool hornKeyPressed = false;
 bool isNight = false;
+bool nightKeyPressed = false;
 
 bool drawStation = false;
 bool firstStation = false;
@@ -77,7 +77,11 @@ std::string grassLawnObjFileName;
 std::string trainObjFileName, trainStationObjFileName;
 std::string tree1ObjFileName, tree2ObjFileName;
 std::string railwayObjFileName;
+std::string rockObjFileName;
+std::string mountainObjFileName;
 
+Model rockObjModel;
+Model mountainObjModel;
 Model grassLawnObjModel;
 Model trainObjModel, trainStationObjModel;
 Model tree1ObjModel, tree2ObjModel;
@@ -218,6 +222,17 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 		}
 	}
 
+	if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS && !nightKeyPressed)
+	{
+		isNight = !isNight;
+		nightKeyPressed = true;
+		std::cout << "Night mode toggled: " << (isNight ? "ON" : "OFF") << std::endl;
+	}
+	else if (glfwGetKey(window, GLFW_KEY_N) == GLFW_RELEASE)
+	{
+		nightKeyPressed = false;
+	}
+
 	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
 	{
 		auto now = std::chrono::steady_clock::now();
@@ -346,8 +361,11 @@ void loadModels(std::string currentPath)
 	tree2ObjFileName = (currentPath + "\\Models\\Tree2\\Tree2.obj");
 	tree2ObjModel = Model(tree2ObjFileName, false);
 
-	rockObjFileName = (currentPath + "\\Models\\Rock_1\\Rock.obj");
+	rockObjFileName = (currentPath + "\\Models\\Rock\\Rock1.obj");
 	rockObjModel = Model(rockObjFileName, false);
+
+	mountainObjFileName = (currentPath + "\\Models\\Mountain\\mount.obj");
+	mountainObjModel = Model(mountainObjFileName, false);
 
 	for (int i = 0; i < 6; ++i)
 	{
@@ -479,7 +497,7 @@ int main()
 
 
 	glm::vec3 trainPos{ -2.5f, 0.0f, -4.0f };
-	glm::vec3 lightPos(0.0f, 10.0f, 10.0f);
+	glm::vec3 lightPos(0.0f, 100.0f, 10.0f);
 
 	// RENDER LOOP
 
@@ -499,9 +517,6 @@ int main()
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		//lightPos.x = 2.5 * cos(glfwGetTime());
-		//lightPos.z = 2.5 * sin(glfwGetTime());
-
 		glDepthMask(GL_FALSE);
 		glDepthFunc(GL_LEQUAL); // Permite desenarea Skybox in spate
 
@@ -509,6 +524,15 @@ int main()
 		skyboxShader.setMat4("view", glm::mat4(glm::mat3(pCamera->GetViewMatrix()))); // Elimina translatia
 		skyboxShader.setMat4("projection", pCamera->GetProjectionMatrix());
 		skyboxShader.setMat4("model", glm::mat4(1.0f));
+
+		if(!isNight)
+		{
+			skyboxShader.SetVec4("lightColor", { 1.f, 1.f, 1.f, 1.f});
+		}
+		else
+		{
+			skyboxShader.SetVec4("lightColor", { 0.1f, 0.1f, 0.2f, 1.f});
+		}
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, skybox.getTextureID());
@@ -522,18 +546,27 @@ int main()
 		glDepthFunc(GL_LESS);
 
 		// Update light position to always be above the train
-		lightPos = glm::vec3(trainPos.x, trainPos.y + 1000.0f, trainPos.z);
+		lightPos = glm::vec3(trainPos.x, trainPos.y + 10000.0f, trainPos.z);
 
 
 		lightingShader.use();
 		lightingShader.SetVec3("lightPos", lightPos);
 		lightingShader.SetVec3("objectColor", 0.5f, 1.0f, 0.31f);
-		lightingShader.SetVec3("lightColor", 1.0f, 1.0f, 1.0f);
-		//lightingShader.SetVec3("lightPos", lightPos);
+		lightingShader.SetVec3("lightPos", lightPos);
 		lightingShader.SetVec3("viewPos", pCamera->GetPosition());
 
 		lightingShader.setMat4("projection", pCamera->GetProjectionMatrix());
 		lightingShader.setMat4("view", pCamera->GetViewMatrix());
+
+		if (!isNight)
+		{
+			lightingShader.SetVec3("lightColor", 1.0f, 1.0f, 1.0f);
+		}
+		else
+		{
+
+			lightingShader.SetVec3("lightColor", .1f, .1f, .1f);
+		}
 
 
 		//flyingCubeModel.Draw(lightingShader);
@@ -547,6 +580,11 @@ int main()
 		lightingWithTextureShader.setInt("texture_diffuse1", 0);
 		lightingWithTextureShader.setMat4("projection", pCamera->GetProjectionMatrix());
 		lightingWithTextureShader.setMat4("view", pCamera->GetViewMatrix());
+
+		/*glm::mat4 mountainModelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(1.f));
+		mountainModelMatrix = glm::translate(mountainModelMatrix, {0, 100, 0});
+		lightingWithTextureShader.setMat4("model", mountainModelMatrix);
+		mountainObjModel.Draw(lightingWithTextureShader);*/
 
 		glm::mat4 trainModelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(1.f));
 		trainModelMatrix = glm::translate(trainModelMatrix, trainPos);
