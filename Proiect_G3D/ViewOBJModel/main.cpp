@@ -573,7 +573,8 @@ int main()
 
 		lightingWithTextureShader.use();
 		lightingWithTextureShader.SetVec3("globalAmbient", 0.05f, 0.05f, 0.05f);
-		lightingWithTextureShader.SetVec3("objectColor", 0.5f, 1.0f, 0.31f);
+		//lightingWithTextureShader.SetVec3("objectColor", 0.5f, 1.0f, 0.31f);
+		lightingWithTextureShader.SetVec3("objectColor", 1.f, 1.f, 1.f);
 		lightingWithTextureShader.SetVec3("lightColor", 1.0f, 1.0f, 1.0f);
 		lightingWithTextureShader.SetVec3("lightPos", lightPos);
 		lightingWithTextureShader.SetVec3("viewPos", pCamera->GetPosition());
@@ -630,7 +631,6 @@ int main()
 		else if (trainPos.z < currentLawnSegment * lawnLength - lawnHalfLength) {
 			currentLawnSegment--;
 		}
-
 		if (currentLawnSegment == 0)
 		{
 			firstStation == true;
