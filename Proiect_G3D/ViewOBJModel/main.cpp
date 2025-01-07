@@ -40,6 +40,9 @@
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 1200;
 
+std::string rockObjFileName;
+Model rockObjModel;
+
 // timing
 double deltaTime = 0.0f;	// time between current frame and last frame
 std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
@@ -116,7 +119,7 @@ void PlayTrainSound(const std::string& soundFilePath, const std::string& movingS
 		PlaySound(idleSoundFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
 	}
 }
-	
+
 
 void PlayTrainMovementSound(const std::string& soundFilePath)
 {
@@ -216,22 +219,22 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 	}
 
 	if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
-    {
-        auto now = std::chrono::steady_clock::now();
-        if (!hornKeyPressed && std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHornTime).count() > hornCooldownMs)
-        {
-            hornKeyPressed = true;
-            lastHornTime = now;
+	{
+		auto now = std::chrono::steady_clock::now();
+		if (!hornKeyPressed && std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHornTime).count() > hornCooldownMs)
+		{
+			hornKeyPressed = true;
+			lastHornTime = now;
 
-            // Play the horn sound on a separate thread
-            std::thread hornThread(PlayTrainSound, hornFilePath, movingTrainSoundFilePath, idleMusicFilePath);
-            hornThread.detach();
-        }
-    }
-    else if (glfwGetKey(window, GLFW_KEY_H) == GLFW_RELEASE)
-    {
-        hornKeyPressed = false;
-    }
+			// Play the horn sound on a separate thread
+			std::thread hornThread(PlayTrainSound, hornFilePath, movingTrainSoundFilePath, idleMusicFilePath);
+			hornThread.detach();
+		}
+	}
+	else if (glfwGetKey(window, GLFW_KEY_H) == GLFW_RELEASE)
+	{
+		hornKeyPressed = false;
+	}
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -268,7 +271,7 @@ void GenerateLawnSegmentTreePositions(float trainPathWidth, float trainPathHeigh
 
 				if (!isInStationArea) {
 					validPosition = true;
-				}			
+				}
 			}
 		}
 
@@ -343,6 +346,9 @@ void loadModels(std::string currentPath)
 	tree2ObjFileName = (currentPath + "\\Models\\Tree2\\Tree2.obj");
 	tree2ObjModel = Model(tree2ObjFileName, false);
 
+	rockObjFileName = (currentPath + "\\Models\\Rock1\\Rock1.obj");
+	rockObjModel = Model(rockObjFileName, false);
+
 	for (int i = 0; i < 6; ++i)
 	{
 		trainStationObjFileName = (currentPath + "\\Models\\Trainstation_" + trainStationNames[i] + "\\train_station.obj");
@@ -415,7 +421,7 @@ int main()
 	//	currentPath + "\\Models\\Skybox_images\\pz.jpg",
 	//	currentPath + "\\Models\\Skybox_images\\nz.jpg"
 	//};
-	
+
 	std::vector<std::string> skyPaths = {
 
 	currentPath + "\\Models\\Skybox_images\\bluecloud_ft.jpg",
@@ -442,7 +448,7 @@ int main()
 
 	std::vector<glm::vec3> pathPoints;
 	for (float z = trainZMin; z <= trainZMax; z += 1.0f) {
-		pathPoints.push_back(glm::vec3(0.0f, 0.0f, z)); 
+		pathPoints.push_back(glm::vec3(0.0f, 0.0f, z));
 	}
 
 	Station trainStation = {
@@ -472,13 +478,14 @@ int main()
 	}
 
 
-	glm::vec3 trainPos{-2.5f, 0.0f, -4.0f};
+	glm::vec3 trainPos{ -2.5f, 0.0f, -4.0f };
 	glm::vec3 lightPos(0.0f, 10.0f, 10.0f);
-
 
 	// RENDER LOOP
 
 	bool isMoving = false;
+
+	const float rockScaleFactor = 0.4f; // Adjust this value to make the rocks smaller
 
 	while (!glfwWindowShouldClose(window)) {
 
@@ -517,9 +524,14 @@ int main()
 		// Update light position to always be above the train
 		lightPos = glm::vec3(trainPos.x, trainPos.y + 1000.0f, trainPos.z);
 
+
 		lightingShader.use();
 		lightingShader.SetVec3("lightPos", lightPos);
+		lightingShader.SetVec3("objectColor", 0.5f, 1.0f, 0.31f);
+		lightingShader.SetVec3("lightColor", 1.0f, 1.0f, 1.0f);
+		//lightingShader.SetVec3("lightPos", lightPos);
 		lightingShader.SetVec3("viewPos", pCamera->GetPosition());
+
 		lightingShader.setMat4("projection", pCamera->GetProjectionMatrix());
 		lightingShader.setMat4("view", pCamera->GetViewMatrix());
 
@@ -595,7 +607,7 @@ int main()
 		activeStations.erase(
 			std::remove_if(activeStations.begin(), activeStations.end(),
 				[&](const std::pair<int, int>& range) {
-					return currentLawnSegment > range.second; 
+					return currentLawnSegment > range.second;
 				}),
 			activeStations.end());
 
@@ -641,6 +653,13 @@ int main()
 					else {
 						tree2ObjModel.Draw(lightingWithTextureShader);
 					}
+
+					// Draw the rock at a slightly offset position from the tree
+					glm::vec3 rockPosition = tree.first + glm::vec3(1.0f, 0.0f, 1.0f); // Adjust the offset as needed
+					glm::mat4 rockMatrix = glm::translate(glm::mat4(1.0f), rockPosition + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
+					rockMatrix = glm::scale(rockMatrix, glm::vec3(treeScales[k] * rockScaleFactor)); // Apply the rock scale factor
+					lightingWithTextureShader.setMat4("model", rockMatrix);
+					rockObjModel.Draw(lightingWithTextureShader);
 				}
 			}
 			else {
@@ -656,6 +675,13 @@ int main()
 					else {
 						tree2ObjModel.Draw(lightingWithTextureShader);
 					}
+
+					// Draw the rock at a slightly offset position from the tree
+					glm::vec3 rockPosition = tree.first + glm::vec3(1.0f, 0.0f, 1.0f); // Adjust the offset as needed
+					glm::mat4 rockMatrix = glm::translate(glm::mat4(1.0f), rockPosition + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
+					rockMatrix = glm::scale(rockMatrix, glm::vec3(treeScales[k] * rockScaleFactor)); // Apply the rock scale factor
+					lightingWithTextureShader.setMat4("model", rockMatrix);
+					rockObjModel.Draw(lightingWithTextureShader);
 				}
 			}
 		}
