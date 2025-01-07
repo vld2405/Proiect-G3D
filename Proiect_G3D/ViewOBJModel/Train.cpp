@@ -6,5 +6,5 @@ Train::Train(string const& path, bool bSmoothNormals, bool gamma) :
 
 void Train::Draw(Shader& shader)
 {
-    
+    m_model.Draw(shader);
 }
