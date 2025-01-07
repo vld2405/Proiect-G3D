@@ -346,7 +346,7 @@ void loadModels(std::string currentPath)
 	tree2ObjFileName = (currentPath + "\\Models\\Tree2\\Tree2.obj");
 	tree2ObjModel = Model(tree2ObjFileName, false);
 
-	rockObjFileName = (currentPath + "\\Models\\Rock1\\Rock1.obj");
+	rockObjFileName = (currentPath + "\\Models\\Rock_1\\Rock.obj");
 	rockObjModel = Model(rockObjFileName, false);
 
 	for (int i = 0; i < 6; ++i)
