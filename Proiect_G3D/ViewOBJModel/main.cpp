@@ -1,6 +1,4 @@
-﻿// ViewOBJModel.cpp : This file contains the 'main' function. Program execution begins and ends there.
-
-#include <Windows.h>
+﻿#include <Windows.h>
 #include <locale>
 #include <codecvt>
 #include <string>
@@ -79,13 +77,9 @@ std::string grassLawnObjFileName;
 std::string trainObjFileName, trainStationObjFileName;
 std::string tree1ObjFileName, tree2ObjFileName;
 std::string railwayObjFileName;
-std::string rockObjFileName;
-std::string mountainObjFileName;
 std::string apartmentObjFileName;
 std::string wagonObjFileName;
 
-Model rockObjModel;
-Model mountainObjModel;
 Model grassLawnObjModel;
 Model trainObjModel, trainStationObjModel;
 Model tree1ObjModel, tree2ObjModel;
@@ -100,40 +94,33 @@ std::vector<std::pair<glm::vec3, int>> treeData;
 std::vector<std::pair<glm::vec3, int>> treeData2;
 
 const float lawnLength = 60.0f;
-const float lawnHalfLength = lawnLength * 0.75f;  // midpoint of lawn
+const float lawnHalfLength = lawnLength * 0.75f;
 const float railwayLength = 2.82f;
 
 static int currentLawnSegment = 0;
 
 void SetVolume(float volume)
 {
-	// Clamp volume between 0.0f and 1.0f
 	volume = (volume < 0.0f) ? 0.0f : (volume > 1.0f) ? 1.0f : volume;
 
-	// Convert to DWORD volume format
 	DWORD dwVolume = static_cast<DWORD>(volume * 0xFFFF);
-	dwVolume = (dwVolume & 0xFFFF) | (dwVolume << 16); // Left and Right channel
+	dwVolume = (dwVolume & 0xFFFF) | (dwVolume << 16);
 
-	waveOutSetVolume(0, dwVolume); // Set master volume
+	waveOutSetVolume(0, dwVolume);
 }
 
 void PlayTrainSound(const std::string& soundFilePath, const std::string& movingSoundFilePath, const std::string& idleSoundFilePath)
 {
-	// Convert the file paths to wide strings
 	std::wstring hornFilePathW = std::wstring(hornFilePath.begin(), hornFilePath.end());
 	std::wstring idleSoundFilePathW = std::wstring(idleMusicFilePath.begin(), idleMusicFilePath.end());
 	std::wstring movingSoundFilePathW = std::wstring(movingTrainSoundFilePath.begin(), movingTrainSoundFilePath.end());
 
-	// Play the horn sound synchronously (blocking the thread it's on)
 	PlaySound(hornFilePathW.c_str(), NULL, SND_SYNC);
 
-	// After the horn finishes, check if the train is moving
 	if (trainAcceleration > 0) {
-		// If the train is moving, play the moving sound
 		PlaySound(movingSoundFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
 	}
 	else {
-		// If the train is not moving, play the idle sound
 		PlaySound(idleSoundFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
 	}
 }
@@ -214,12 +201,12 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 		pCamera->Reset(width, height);
 	}
 
-	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 	{
 		if (trainAcceleration < 20)
 		{
 			trainAcceleration += 0.05;
-			if (trainAcceleration > 20) // Clamp to 4
+			if (trainAcceleration > 20)
 				trainAcceleration = 20;
 			std::cout << trainAcceleration << '\n';
 		}
@@ -230,9 +217,9 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 		if (trainAcceleration > 0)
 		{
 			trainAcceleration -= 0.1;
-			if (trainAcceleration < 0) // Clamp to 0
-				trainAcceleration = 0;
 			std::cout << trainAcceleration << '\n';
+			if (trainAcceleration < 0)
+				trainAcceleration = 0;
 		}
 	}
 
@@ -255,7 +242,6 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 			hornKeyPressed = true;
 			lastHornTime = now;
 
-			// Play the horn sound on a separate thread
 			std::thread hornThread(PlayTrainSound, hornFilePath, movingTrainSoundFilePath, idleMusicFilePath);
 			hornThread.detach();
 		}
@@ -266,15 +252,11 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 	}
 }
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-}
 
 GLuint CreateDepthMapFBO(GLuint& depthMapTexture, const unsigned int shadowWidth, const unsigned int shadowHeight) {
 	GLuint depthMapFBO;
 	glGenFramebuffers(1, &depthMapFBO);
 
-	// Creați textura pentru hartă de adâncime
 	glGenTextures(1, &depthMapTexture);
 	glBindTexture(GL_TEXTURE_2D, depthMapTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowWidth, shadowHeight, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -283,11 +265,9 @@ GLuint CreateDepthMapFBO(GLuint& depthMapTexture, const unsigned int shadowWidth
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-	// Bordura pentru cazuri unde nu există informație de adâncime
 	float borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-	// Atașează textura la framebuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
 	glDrawBuffer(GL_NONE);
@@ -303,7 +283,7 @@ GLuint CreateDepthMapFBO(GLuint& depthMapTexture, const unsigned int shadowWidth
 }
 
 void RenderDepthMap(GLuint& depthMapFBO, Shader& shaderProgram, glm::mat4& lightSpaceMatrix, Camera& camera) {
-	glViewport(0, 0, 8192, 8192); // Rezoluția hărții de adâncime
+	glViewport(0, 0, 8192, 8192);
 	glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
 	glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -322,23 +302,19 @@ void RenderDepthMap(GLuint& depthMapFBO, Shader& shaderProgram, glm::mat4& light
 	shaderProgram.setMat4("model", wagonModelMatrix);
 	wagonObjModel.Draw(shaderProgram);
 
-	int segmentsX = 3; // Number of grass segments in the X direction (sideways)
+	int segmentsX = 3; // Number of grass segments in the X direction
 
 	for (int i = -1; i <= 3; ++i) {
 		for (int l = 0; l < segmentsX; ++l) {
 			glm::mat4 grassLawnModelMatrix_middle = glm::mat4(1.f);
 
-			// Adjust the translation to move in the X direction
 			grassLawnModelMatrix_middle = glm::translate(grassLawnModelMatrix_middle, glm::vec3((l - segmentsX / 2) * lawnLength, -0.2f, (currentLawnSegment + i) * lawnLength));
 
-			// Scale the grass model
 			grassLawnModelMatrix_middle = glm::scale(grassLawnModelMatrix_middle, glm::vec3(3000.f, 500.f, 3000.f));
 
-			// Set the model matrix and draw the grass lawn
 			shaderProgram.setMat4("model", grassLawnModelMatrix_middle);
 			grassLawnObjModel.Draw(shaderProgram);
 
-			// Handle railway model rendering
 			for (int j = -2; j < 3; ++j) {
 				glm::mat4 railwayModelMatrix = glm::mat4(1.f);
 				railwayModelMatrix = glm::scale(railwayModelMatrix, glm::vec3(1.f, 1.f, 4.f));
@@ -348,20 +324,16 @@ void RenderDepthMap(GLuint& depthMapFBO, Shader& shaderProgram, glm::mat4& light
 				railwayObjModel.Draw(shaderProgram);
 			}
 
-			// Tree and rock rendering
 			if ((currentLawnSegment + i + 2) % 4 != 2) {
 				for (size_t k = 0; k < treeData.size(); ++k) {
 					const auto& tree = treeData[k];
 
-					// Modify X to place trees sideways (in the X direction)
-					float offsetX = (l - segmentsX / 2) * lawnLength; // Adjust for side positioning
+					float offsetX = (l - segmentsX / 2) * lawnLength;
 					glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(offsetX, 0.f, (currentLawnSegment + i) * lawnLength));
-					treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k])); // Apply scale factor
+					treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k]));
 
-					// Set the model matrix for the tree
 					shaderProgram.setMat4("model", treeMatrix);
 
-					// Choose the tree model and texture
 					if (tree.second == 0) {
 						tree1ObjModel.Draw(shaderProgram);
 						Texture treeTexture = tree1ObjModel.textures_loaded[0];
@@ -380,12 +352,10 @@ void RenderDepthMap(GLuint& depthMapFBO, Shader& shaderProgram, glm::mat4& light
 
 					float offsetX = (l - segmentsX / 2) * lawnLength;
 					glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(offsetX, 0.f, (currentLawnSegment + i) * lawnLength));
-					treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k])); // Apply scale factor
+					treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k]));
 
-					// Set the model matrix for the tree
 					shaderProgram.setMat4("model", treeMatrix);
 
-					// Choose the tree model and texture
 					if (tree.second == 0) {
 						tree1ObjModel.Draw(shaderProgram);
 						Texture treeTexture = tree1ObjModel.textures_loaded[0];
@@ -438,15 +408,12 @@ void RenderDepthMap(GLuint& depthMapFBO, Shader& shaderProgram, glm::mat4& light
 
 				apartmentObjModel.Draw(shaderProgram);
 
-				// Train station rendering (accessing sideways segments)
 				glm::mat4 trainStationModelMatrix = glm::mat4(1.0f);
-				// Adjust the train station's X position using `l`
 				trainStationModelMatrix = glm::translate(trainStationModelMatrix, glm::vec3(-11.0f, 0.40f, (currentLawnSegment + i) * lawnLength));
 				trainStationModelMatrix = glm::scale(trainStationModelMatrix, glm::vec3(2.0f));
 				trainStationModelMatrix = glm::rotate(trainStationModelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 				shaderProgram.setMat4("model", trainStationModelMatrix);
 
-				// Determine which train station model to use
 				int stationIndex = ((currentLawnSegment + i) / 4) % trainStationNames.size();
 				trainStationObjModels[stationIndex].Draw(shaderProgram);
 			}
@@ -562,9 +529,6 @@ void loadModels(std::string currentPath)
 	tree2ObjFileName = (currentPath + "\\Models\\Tree2\\Tree2.obj");
 	tree2ObjModel = Model(tree2ObjFileName, false);
 
-	rockObjFileName = (currentPath + "\\Models\\Rock1\\Rock1.obj");
-	rockObjModel = Model(rockObjFileName, false);
-
 	apartmentObjFileName = (currentPath + "\\Models\\Apartment_Block\\Apartment.obj");
 	apartmentObjModel = Model(apartmentObjFileName, false);
 
@@ -598,7 +562,6 @@ int main()
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
-	//glfwSetKeyCallback(window, key_callback);
 
 	// tell GLFW to capture our mouse
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -612,7 +575,6 @@ int main()
 	// Create camera
 	pCamera = new Camera(SCR_WIDTH, SCR_HEIGHT, glm::vec3(0.0, 0.0, 3.0));
 	glm::vec3 cameraPos = pCamera->GetPosition();
-	//pCamera->SetOrientation(90.f, -20.0f);
 
 
 	wchar_t buffer[MAX_PATH];
@@ -632,18 +594,8 @@ int main()
 
 	Shader lightingShader((currentPath + "\\Shaders\\PhongLight.vs").c_str(), (currentPath + "\\Shaders\\PhongLight.fs").c_str());
 	Shader lightingWithTextureShader((currentPath + "\\Shaders\\PhongLightWithTexture.vs").c_str(), (currentPath + "\\Shaders\\PhongLightWithTexture.fs").c_str());
-	Shader lampShader((currentPath + "\\Shaders\\Lamp.vs").c_str(), (currentPath + "\\Shaders\\Lamp.fs").c_str());
 	Shader skyboxShader((currentPath + "\\Shaders\\Skybox.vs").c_str(), (currentPath + "\\Shaders\\Skybox.fs").c_str());
 	Shader shaderProgram((currentPath + "\\Shaders\\DepthMap.vs").c_str(), (currentPath + "\\Shaders\\DepthMap.fs").c_str());
-
-	//std::vector<std::string> skyPaths = {
-	//	currentPath + "\\Models\\Skybox_images\\px.jpg",
-	//	currentPath + "\\Models\\Skybox_images\\nx.jpg",
-	//	currentPath + "\\Models\\Skybox_images\\py.jpg",
-	//	currentPath + "\\Models\\Skybox_images\\ny.jpg",
-	//	currentPath + "\\Models\\Skybox_images\\pz.jpg",
-	//	currentPath + "\\Models\\Skybox_images\\nz.jpg"
-	//};
 
 	std::vector<std::string> skyPaths = {
 
@@ -660,14 +612,13 @@ int main()
 
 	Skybox skybox(skyPaths);
 
-	//draw trees
 	float trainPathWidth = 10.0f;
 	float trainPathHeight = 10.0f;
 	float trainZMin = -100.0f;
 	float trainZMax = 100.0f;
 	int treeCount = 50;
-	glm::vec3 modelMin(-30.0f, 0.0f, -30.0f);  // Minimum coordinates (example)
-	glm::vec3 modelMax(30.0f, 0.0f, 30.0f);    // Maximum coordinates (example)
+	glm::vec3 modelMin(-30.0f, 0.0f, -30.0f);
+	glm::vec3 modelMax(30.0f, 0.0f, 30.0f);
 
 	std::vector<glm::vec3> pathPoints;
 	for (float z = trainZMin; z <= trainZMax; z += 1.0f) {
@@ -676,15 +627,14 @@ int main()
 
 	Station trainStation = {
 		glm::vec3(-11.0f, 0.40f, 0.80f),  // Position of the station
-		glm::vec3(25.0f, 5.0f, 50.0f)  // Size (width, height, depth)
+		glm::vec3(25.0f, 5.0f, 50.0f)  // Size 
 	};
 
 	GenerateTreePositions(trainPathWidth, trainPathHeight, trainZMin, trainZMax, treeCount, modelMin, modelMax, pathPoints, trainStation);
 
-	; // Position + Type
 	for (const auto& pos : treePositions) {
-		int randNum = rand() % 2; // Randomly choose 0 or 1
-		treeData.emplace_back(pos, randNum); // Store position and type
+		int randNum = rand() % 2;
+		treeData.emplace_back(pos, randNum);
 	}
 
 	treeCount = 50;
@@ -694,31 +644,19 @@ int main()
 	GenerateLawnSegmentTreePositions(trainPathWidth, trainPathHeight, trainZMin, trainZMax, treeCount, modelMin, modelMax, pathPoints, trainStation, modelMin, modelMax);
 
 
-	std::vector<std::pair<glm::vec3, int>> treeData2; // Position + Type
+	std::vector<std::pair<glm::vec3, int>> treeData2;
 	for (const auto& pos : treePositionsTrainStation) {
-		int randNum = rand() % 2; // Randomly choose 0 or 1
-		treeData2.emplace_back(pos, randNum); // Store position and type
+		int randNum = rand() % 2;
+		treeData2.emplace_back(pos, randNum);
 	}
 
 
 	GLuint depthMapFBO, depthMap;
 	depthMapFBO = CreateDepthMapFBO(depthMap, 8192, 8192);
 
-	/*glm::mat4 lightProjection, lightView, lightSpaceMatrix;
-	float near_plane = 1.0f, far_plane = 7.5f;
-	lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-	lightView = glm::lookAt(glm::vec3(0.0f, 10.0f, 0.0f),
-		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::vec3(0.0f, 1.0f, 0.0f));
-	lightSpaceMatrix = lightProjection * lightView;*/
-
-
-
-	// RENDER LOOP
-
 	bool isMoving = false;
-
-	const float rockScaleFactor = 0.4f; // Adjust this value to make the rocks smaller
+	
+	// RENDER LOOP
 
 	while (!glfwWindowShouldClose(window)) {
 
@@ -764,21 +702,13 @@ int main()
 
 		glm::vec3 lightTarget = trainPos;
 		glm::vec3 lightDir = glm::normalize(lightPos - lightTarget);
-		//glm::mat4 lightProjection = glm::ortho(-200.0f, 200.0f, -200.0f, 200.0f, 0.1f, 300.0f);
 		glm::mat4 lightProjection = glm::ortho(-100.0f, 100.0f, -100.0f, 100.0f, 1.0f, 300.0f);
 
-		/*glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-		if (glm::dot(lightDir, up) > 0.99f) {
-			up = glm::vec3(1.0f, 0.0f, 0.0f);
-		}
-
-		glm::mat4 lightView = glm::lookAt(lightPos, lightTarget, up);*/
 		glm::mat4 lightView = glm::lookAt(lightPos, lightTarget, glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
 		// Render Depth Map
 		RenderDepthMap(depthMapFBO, shaderProgram, lightSpaceMatrix, *pCamera);
-
 
 		lightingShader.use();
 		lightingShader.SetVec3("lightPos", lightPos);
@@ -824,8 +754,6 @@ int main()
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, depthMap);
 
-		/// Draw TRAIN
-
 		glm::mat4 trainModelMatrix = glm::mat4(1.0);
 		trainModelMatrix = glm::scale(trainModelMatrix, glm::vec3(1.f));
 		trainModelMatrix = glm::translate(trainModelMatrix, trainPos);
@@ -856,7 +784,6 @@ int main()
 		{
 			glm::vec3& cameraPos = pCamera->GetPosition();
 			glm::vec3 cameraOffset(2.25f, 10.f, -20.f);
-			//pCamera->SetOrientation(180.0f, -20.0f);
 			cameraPos = cameraOffset + trainPos;
 		}
 		if (FirstPersonFlag == true)
@@ -879,23 +806,17 @@ int main()
 		}
 
 
-		int segmentsX = 3; // Number of grass segments in the X direction (sideways)
+		int segmentsX = 3; // Number of grass segments in the X direction
 
 		for (int i = -1; i <= 3; ++i) {
 			for (int l = 0; l < segmentsX; ++l) {
 				glm::mat4 grassLawnModelMatrix_middle = glm::mat4(1.f);
 
-				// Adjust the translation to move in the X direction
 				grassLawnModelMatrix_middle = glm::translate(grassLawnModelMatrix_middle, glm::vec3((l - segmentsX / 2) * lawnLength, -0.2f, (currentLawnSegment + i) * lawnLength));
-
-				// Scale the grass model
 				grassLawnModelMatrix_middle = glm::scale(grassLawnModelMatrix_middle, glm::vec3(3000.f, 500.f, 3000.f));
-
-				// Set the model matrix and draw the grass lawn
 				lightingWithTextureShader.setMat4("model", grassLawnModelMatrix_middle);
 				grassLawnObjModel.Draw(lightingWithTextureShader);
 
-				// Handle railway model rendering
 				for (int j = -2; j < 3; ++j) {
 					glm::mat4 railwayModelMatrix = glm::mat4(1.f);
 					railwayModelMatrix = glm::scale(railwayModelMatrix, glm::vec3(1.f, 1.f, 4.f));
@@ -905,20 +826,14 @@ int main()
 					railwayObjModel.Draw(lightingWithTextureShader);
 				}
 
-				// Tree and rock rendering
 				if ((currentLawnSegment + i + 2) % 4 != 2) {
 					for (size_t k = 0; k < treeData.size(); ++k) {
 						const auto& tree = treeData[k];
-
-						// Modify X to place trees sideways (in the X direction)
-						float offsetX = (l - segmentsX / 2) * lawnLength; // Adjust for side positioning
+						float offsetX = (l - segmentsX / 2) * lawnLength;
 						glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(offsetX, 0.f, (currentLawnSegment + i) * lawnLength));
-						treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k])); // Apply scale factor
-
-						// Set the model matrix for the tree
+						treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k]));
 						lightingWithTextureShader.setMat4("model", treeMatrix);
 
-						// Choose the tree model and texture
 						if (tree.second == 0) {
 							tree1ObjModel.Draw(lightingWithTextureShader);
 							Texture treeTexture = tree1ObjModel.textures_loaded[0];
@@ -937,22 +852,8 @@ int main()
 
 						float offsetX = (l - segmentsX / 2) * lawnLength;
 						glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(offsetX, 0.f, (currentLawnSegment + i) * lawnLength));
-						treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k])); // Apply scale factor
-
-						// Set the model matrix for the tree
+						treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k]));
 						lightingWithTextureShader.setMat4("model", treeMatrix);
-
-						// Choose the tree model and texture
-						///*if (tree.second == 0) {
-						//	tree1ObjModel.Draw(lightingWithTextureShader);
-						//	Texture treeTexture = tree1ObjModel.textures_loaded[0];
-						//	glBindTexture(GL_TEXTURE_2D, treeTexture.id);
-						//}
-						//else {
-						//	tree2ObjModel.Draw(lightingWithTextureShader);
-						//	Texture treeTexture = tree2ObjModel.textures_loaded[0];
-						//	glBindTexture(GL_TEXTURE_2D, treeTexture.id);
-						//}*/
 					}
 
 					glm::mat4 BlockMatrix = glm::mat4(1.0f);
@@ -995,27 +896,17 @@ int main()
 
 					apartmentObjModel.Draw(lightingWithTextureShader);
 
-					// Train station rendering (accessing sideways segments)
 					glm::mat4 trainStationModelMatrix = glm::mat4(1.0f);
-					// Adjust the train station's X position using `l`
 					trainStationModelMatrix = glm::translate(trainStationModelMatrix, glm::vec3(-11.0f, 0.40f, (currentLawnSegment + i) * lawnLength));
 					trainStationModelMatrix = glm::scale(trainStationModelMatrix, glm::vec3(2.0f));
 					trainStationModelMatrix = glm::rotate(trainStationModelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 					lightingWithTextureShader.setMat4("model", trainStationModelMatrix);
 
-					// Determine which train station model to use
 					int stationIndex = ((currentLawnSegment + i) / 4) % trainStationNames.size();
 					trainStationObjModels[stationIndex].Draw(lightingWithTextureShader);
 				}
 			}
 		}
-
-
-
-		// also draw the lamp object
-		lampShader.use();
-		lampShader.setMat4("projection", pCamera->GetProjectionMatrix());
-		lampShader.setMat4("view", pCamera->GetViewMatrix());
 
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		glfwSwapBuffers(window);

@@ -81,10 +81,10 @@
     <None Include="..\Shaders\Skybox.fs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="DepthMap.vs">
+    <None Include="..\Shaders\DepthMap.fs">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="DepthMap.fs">
+    <None Include="..\Shaders\DepthMap.vs">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
