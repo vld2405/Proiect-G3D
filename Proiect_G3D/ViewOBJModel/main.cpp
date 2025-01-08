@@ -19,6 +19,7 @@
 #include <gtc/type_ptr.hpp>
 #include <glfw3.h>
 
+#include<map>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -36,6 +37,9 @@
 #include <mmsystem.h>
 #pragma comment(lib, "winmm.lib")
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 // settings
 const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 1200;
@@ -46,6 +50,8 @@ const unsigned int SCR_HEIGHT = 1200;
 double deltaTime = 0.0f;	// time between current frame and last frame
 std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
 auto lastHornTime = std::chrono::steady_clock::now();
+
+bool showText = true;
 
 bool ThirdPersonFlag = true;
 bool FirstPersonFlag = false;
@@ -263,6 +269,17 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 	else if (glfwGetKey(window, GLFW_KEY_H) == GLFW_RELEASE)
 	{
 		hornKeyPressed = false;
+	}
+
+	static bool mKeyPressed = false;
+	if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS && !mKeyPressed)
+	{
+		showText = !showText;
+		mKeyPressed = true;
+	}
+	else if (glfwGetKey(window, GLFW_KEY_M) == GLFW_RELEASE)
+	{
+		mKeyPressed = false;
 	}
 }
 
@@ -539,6 +556,79 @@ void loadModels(std::string currentPath)
 	}
 }
 
+struct Character {
+	GLuint TextureID;  // ID handle of the glyph texture
+	glm::ivec2 Size;   // Size of glyph
+	glm::ivec2 Bearing; // Offset from baseline to left/top of glyph
+	GLuint Advance;    // Offset to advance to next glyph
+};
+
+std::map<GLchar, Character> Characters;
+GLuint VAO, VBO;
+
+void RenderText(Shader& shader, std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color)
+{
+	// Activate corresponding render state
+	shader.use();
+	shader.SetVec3("textColor", color);
+	glActiveTexture(GL_TEXTURE0);
+	glBindVertexArray(VAO);
+
+	// Iterate through all characters
+	std::string::const_iterator c;
+	for (c = text.begin(); c != text.end(); c++) {
+		Character ch = Characters[*c];
+
+		GLfloat xpos = x + ch.Bearing.x * scale;
+		GLfloat ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
+
+		GLfloat w = ch.Size.x * scale;
+		GLfloat h = ch.Size.y * scale;
+		// Update VBO for each character
+		GLfloat vertices[6][4] = {
+			{ xpos,     ypos + h,   0.0, 0.0 },
+			{ xpos,     ypos,       0.0, 1.0 },
+			{ xpos + w, ypos,       1.0, 1.0 },
+
+			{ xpos,     ypos + h,   0.0, 0.0 },
+			{ xpos + w, ypos,       1.0, 1.0 },
+			{ xpos + w, ypos + h,   1.0, 0.0 }
+		};
+		// Debugging output
+		/*std::cout << "Rendering character: " << *c << std::endl;
+		std::cout << "Texture ID: " << ch.TextureID << std::endl;
+		std::cout << "Vertices: " << std::endl;
+		for (int i = 0; i < 6; ++i) {
+			std::cout << vertices[i][0] << ", " << vertices[i][1] << ", " << vertices[i][2] << ", " << vertices[i][3] << std::endl;
+		}*/
+
+		// Render glyph texture over quad
+		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
+		// Update content of VBO memory
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // Be sure to use glBufferSubData and not glBufferData
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		// Render quad
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		// Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
+		x += (ch.Advance >> 6) * scale; // Bitshift by 6 to get value in pixels (2^6 = 64)
+	}
+	glBindVertexArray(0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+std::string GetSpeedText(float speed)
+{
+	speed = speed * 100;
+	int intermediar_speed = int(speed);
+	speed = intermediar_speed / 100;
+	std::ostringstream ss;
+	ss << "Train current speed: " << speed * 10;
+	return ss.str();
+}
+
+
 int main()
 {
 	// glfw: initialize and configure
@@ -587,6 +677,94 @@ int main()
 
 	loadModels(currentPath);
 	loadSounds(currentPath);
+
+	//freetype
+
+	// Initialize FreeType
+	FT_Library ft;
+	if (FT_Init_FreeType(&ft)) {
+		std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
+		return -1;
+	}
+
+	// Load font as face
+	FT_Face face;
+	if (FT_New_Face(ft, (currentPath + "\\Fonts\\02587_ARIALMT.ttf").c_str(), 0, &face)) {
+		std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
+		return -1;
+	}
+
+	// Set size to load glyphs as
+	FT_Set_Pixel_Sizes(face, 0, 48);
+
+	// Disable byte-alignment restriction
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	// Load first 128 characters of ASCII set
+	for (GLubyte c = 0; c < 128; c++) {
+		// Load character glyph
+		if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
+			std::cout << "ERROR::FREETYPE: Failed to load Glyph" << std::endl;
+			continue;
+		}
+		std::cout << "Glyph for character " << c << " loaded successfully." << std::endl;
+
+		// Generate texture
+		GLuint texture;
+		glGenTextures(1, &texture);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			GL_RED,
+			face->glyph->bitmap.width,
+			face->glyph->bitmap.rows,
+			0,
+			GL_RED,
+			GL_UNSIGNED_BYTE,
+			face->glyph->bitmap.buffer
+		);
+		// Set texture options
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		std::cout << "Texture for character " << c << " generated successfully." << std::endl;
+
+		// Store character for later use
+		Character character = {
+			texture,
+			glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
+			glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
+			face->glyph->advance.x
+		};
+		Characters.insert(std::pair<GLchar, Character>(c, character));
+	}
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	// Destroy FreeType once we're finished
+	FT_Done_Face(face);
+	FT_Done_FreeType(ft);
+
+	// Configure VAO/VBO for texture quads
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+
+	// Load and configure shader
+	Shader textShader((currentPath + "\\Shaders\\text.vs").c_str(), (currentPath + "\\Shaders\\text.fs").c_str());
+	glm::mat4 projection = glm::ortho(0.0f, static_cast<GLfloat>(SCR_WIDTH), 0.0f, static_cast<GLfloat>(SCR_HEIGHT));
+	textShader.use();
+	textShader.setMat4("projection", projection);
+
+	//freetype
+
 
 	std::wstring idleMusicFilePathW = std::wstring(idleMusicFilePath.begin(), idleMusicFilePath.end());
 	PlaySound(idleMusicFilePathW.c_str(), NULL, SND_ASYNC | SND_LOOP);
@@ -758,6 +936,25 @@ int main()
 			lightingShader.SetVec3("lightColor", .1f, .1f, .1f);
 		}
 
+		float textPosX = 100.0f;
+		float textPosY = 1100.0f;
+		float textScale = 0.8f; // Increase the scale for better readability
+		glm::vec3 textColor = glm::vec3(1.0f, 1.0f, 1.0f); // White color for better contrast
+
+		if (showText)
+		{
+			// Render multiple lines of text
+			RenderText(textShader, "Press 1,2 and 3 to change the view mode", textPosX, textPosY, textScale, textColor);
+			RenderText(textShader, "Press PgUp to accelerate and PgDown to decelerate", textPosX, textPosY - 50.0f, textScale, textColor);
+			RenderText(textShader, "Press H to horn", textPosX, textPosY - 100.0f, textScale, textColor); // Adjust Y position for the next line
+			RenderText(textShader, "Press N to change the day/night cycle", textPosX, textPosY - 150.0f, textScale, textColor); // Adjust Y position for the next line
+			RenderText(textShader, "Press M to close/open this menu", textPosX, textPosY - 200.0f, textScale, textColor); // Adjust Y position for the next line
+		}
+
+		std::string speedText = GetSpeedText(trainAcceleration);
+		RenderText(textShader, speedText, textPosX, textPosY - 1000.0f, textScale, textColor); // Adjust Y position for the next line
+
+
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, depthMap);
 
@@ -908,7 +1105,21 @@ int main()
 							glBindTexture(GL_TEXTURE_2D, treeTexture.id);
 						}
 					}
+					glm::mat4 objectMatrixRight = glm::mat4(1.0f);
+					objectMatrixRight = glm::translate(objectMatrixRight, glm::vec3(-70.0f, 15.0f, (currentLawnSegment + i) * lawnLength));
+					objectMatrixRight = glm::scale(objectMatrixRight, glm::vec3(2.5f, 2.5f, 2.5f));
+					objectMatrixRight = glm::rotate(objectMatrixRight, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+					lightingWithTextureShader.setMat4("model", objectMatrixRight);
 
+					ApartmentObjModel.Draw(lightingWithTextureShader);
+
+					glm::mat4 objectMatrixLeft = glm::mat4(1.0f);
+					objectMatrixLeft = glm::translate(objectMatrixLeft, glm::vec3(50.0f, 15.0f, (currentLawnSegment + i) * lawnLength));
+					objectMatrixLeft = glm::scale(objectMatrixLeft, glm::vec3(2.5f, 2.5f, 2.5f));
+					objectMatrixLeft = glm::rotate(objectMatrixLeft, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+					lightingWithTextureShader.setMat4("model", objectMatrixLeft);
+
+					ApartmentObjModel.Draw(lightingWithTextureShader);
 					// Train station rendering (accessing sideways segments)
 					glm::mat4 trainStationModelMatrix = glm::mat4(1.0f);
 					// Adjust the train station's X position using `l`
