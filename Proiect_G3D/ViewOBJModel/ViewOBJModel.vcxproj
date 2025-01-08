@@ -80,8 +80,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>..\_external\GLEW;..\_external\glfw;..\_external\glm;..\_external\stb;..\_external\freeglut\include;$(IncludePath)</IncludePath>
-    <LibraryPath>..\_external\GLFW\x64;..\_external\GLEW\x64;..\_external\freeglut\lib\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\_external\GLEW;..\_external\glfw;..\_external\glm;..\_external\stb;..\_external\freeglut\include;..\_external\ft2130\freetype-2.13.0\include;..\_external\ft2130\freetype-2.13.0\objs\x64\Debug\;$(IncludePath)</IncludePath>
+    <LibraryPath>..\_external\GLFW\x64;..\_external\GLEW\x64;..\_external\freeglut\lib\x64;..\_external\ft2130\freetype-2.13.0\objs\x64\Debug\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -129,7 +129,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\_external\SFML-2.5.1-windows-vc14-64-bit\SFML-2.5.1\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
