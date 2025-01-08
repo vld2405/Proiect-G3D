@@ -482,10 +482,10 @@ int main()
 
 	GenerateTreePositions(trainPathWidth, trainPathHeight, trainZMin, trainZMax, treeCount, modelMin, modelMax, pathPoints, trainStation);
 
-	std::vector<std::pair<glm::vec3, int>> treeData; // Position + Type
+	std::vector<std::pair<glm::vec3, int>> treeData1; // Position + Type
 	for (const auto& pos : treePositions) {
 		int randNum = rand() % 2; // Randomly choose 0 or 1
-		treeData.emplace_back(pos, randNum); // Store position and type
+		treeData1.emplace_back(pos, randNum); // Store position and type
 	}
 
 	treeCount = 50;
@@ -670,8 +670,8 @@ int main()
 
 				// Tree and rock rendering
 				if ((currentLawnSegment + i + 2) % 4 != 2) {
-					for (size_t k = 0; k < treeData.size(); ++k) {
-						const auto& tree = treeData[k];
+					for (size_t k = 0; k < treeData1.size(); ++k) {
+						const auto& tree = treeData1[k];
 
 						// Modify X to place trees sideways (in the X direction)
 						float offsetX = (l - segmentsX / 2) * lawnLength; // Adjust for side positioning
@@ -694,7 +694,7 @@ int main()
 						}
 					}
 				}
-				else {
+				else if ((currentLawnSegment + i + 2) % 4 == 2) {
 					for (size_t k = 0; k < treeData2.size(); ++k) {
 						const auto& tree = treeData2[k];
 
@@ -718,15 +718,28 @@ int main()
 						}
 					}
 
-					// Train station rendering (accessing sideways segments)
+					glm::mat4 objectMatrixRight = glm::mat4(1.0f);
+					objectMatrixRight = glm::translate(objectMatrixRight, glm::vec3(-70.0f, 15.0f, (currentLawnSegment + i) * lawnLength));
+					objectMatrixRight = glm::scale(objectMatrixRight, glm::vec3(2.5f, 2.5f, 2.5f));
+					objectMatrixRight = glm::rotate(objectMatrixRight, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+					lightingWithTextureShader.setMat4("model", objectMatrixRight);
+
+					ApartmentObjModel.Draw(lightingWithTextureShader);
+
+					glm::mat4 objectMatrixLeft = glm::mat4(1.0f);
+					objectMatrixLeft = glm::translate(objectMatrixLeft, glm::vec3(50.0f, 15.0f, (currentLawnSegment + i) * lawnLength));
+					objectMatrixLeft = glm::scale(objectMatrixLeft, glm::vec3(2.5f, 2.5f, 2.5f));
+					objectMatrixLeft = glm::rotate(objectMatrixLeft, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+					lightingWithTextureShader.setMat4("model", objectMatrixLeft);
+
+					ApartmentObjModel.Draw(lightingWithTextureShader);
+
 					glm::mat4 trainStationModelMatrix = glm::mat4(1.0f);
-					// Adjust the train station's X position using `l`
 					trainStationModelMatrix = glm::translate(trainStationModelMatrix, glm::vec3(-11.0f, 0.40f, (currentLawnSegment + i) * lawnLength));
 					trainStationModelMatrix = glm::scale(trainStationModelMatrix, glm::vec3(2.0f));
 					trainStationModelMatrix = glm::rotate(trainStationModelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 					lightingWithTextureShader.setMat4("model", trainStationModelMatrix);
 
-					// Determine which train station model to use
 					int stationIndex = ((currentLawnSegment + i) / 4) % trainStationNames.size();
 					trainStationObjModels[stationIndex].Draw(lightingWithTextureShader);
 				}
