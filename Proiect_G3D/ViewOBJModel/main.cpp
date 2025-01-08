@@ -51,6 +51,8 @@ double deltaTime = 0.0f;	// time between current frame and last frame
 std::chrono::high_resolution_clock::time_point lastFrame = std::chrono::high_resolution_clock::now();
 auto lastHornTime = std::chrono::steady_clock::now();
 
+bool showText = true;
+
 bool ThirdPersonFlag = true;
 bool FirstPersonFlag = false;
 bool FreeCameraFlag = false;
@@ -258,6 +260,17 @@ void HandleInput(GLFWwindow* window, Camera& camera, float deltaTime)
 	{
 		hornKeyPressed = false;
 	}
+
+	static bool mKeyPressed = false;
+	if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS && !mKeyPressed)
+	{
+		showText = !showText;
+		mKeyPressed = true;
+	}
+	else if (glfwGetKey(window, GLFW_KEY_M) == GLFW_RELEASE)
+	{
+		mKeyPressed = false;
+	}
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -423,6 +436,14 @@ void RenderText(Shader& shader, std::string text, GLfloat x, GLfloat y, GLfloat 
 			{ xpos + w, ypos,       1.0, 1.0 },
 			{ xpos + w, ypos + h,   1.0, 0.0 }
 		};
+		// Debugging output
+		/*std::cout << "Rendering character: " << *c << std::endl;
+		std::cout << "Texture ID: " << ch.TextureID << std::endl;
+		std::cout << "Vertices: " << std::endl;
+		for (int i = 0; i < 6; ++i) {
+			std::cout << vertices[i][0] << ", " << vertices[i][1] << ", " << vertices[i][2] << ", " << vertices[i][3] << std::endl;
+		}*/
+
 		// Render glyph texture over quad
 		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
 		// Update content of VBO memory
@@ -438,6 +459,17 @@ void RenderText(Shader& shader, std::string text, GLfloat x, GLfloat y, GLfloat 
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
+
+std::string GetSpeedText(float speed)
+{
+	speed = speed * 100;
+	int intermediar_speed = int(speed);
+	speed = intermediar_speed / 100;
+	std::ostringstream ss;
+	ss << "Train current speed: " << speed*10 ;
+	return ss.str();
+}
+
 
 int main()
 {
@@ -491,28 +523,35 @@ int main()
 
 	//freetype
 
+	// Initialize FreeType
 	FT_Library ft;
 	if (FT_Init_FreeType(&ft)) {
 		std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
 		return -1;
 	}
 
+	// Load font as face
 	FT_Face face;
-	if (FT_New_Face(ft, (currentPath + "\\Fonts\\chrusty-rock-font\\ChrustyRock-ORLA.ttf").c_str(), 0, &face)) {
+	if (FT_New_Face(ft, (currentPath + "\\Fonts\\02587_ARIALMT.ttf").c_str(), 0, &face)) {
 		std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
 		return -1;
 	}
 
-	FT_Set_Pixel_Sizes(face, 0, 48); // Set font size
+	// Set size to load glyphs as
+	FT_Set_Pixel_Sizes(face, 0, 48);
 
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // Disable byte-alignment restriction
+	// Disable byte-alignment restriction
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+	// Load first 128 characters of ASCII set
 	for (GLubyte c = 0; c < 128; c++) {
 		// Load character glyph
 		if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
 			std::cout << "ERROR::FREETYPE: Failed to load Glyph" << std::endl;
 			continue;
 		}
+		std::cout << "Glyph for character " << c << " loaded successfully." << std::endl;
+
 		// Generate texture
 		GLuint texture;
 		glGenTextures(1, &texture);
@@ -533,6 +572,8 @@ int main()
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		std::cout << "Texture for character " << c << " generated successfully." << std::endl;
+
 		// Store character for later use
 		Character character = {
 			texture,
@@ -544,9 +585,11 @@ int main()
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 
+	// Destroy FreeType once we're finished
 	FT_Done_Face(face);
 	FT_Done_FreeType(ft);
 
+	// Configure VAO/VBO for texture quads
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glBindVertexArray(VAO);
@@ -557,6 +600,7 @@ int main()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
+	// Load and configure shader
 	Shader textShader((currentPath + "\\Shaders\\text.vs").c_str(), (currentPath + "\\Shaders\\text.fs").c_str());
 	glm::mat4 projection = glm::ortho(0.0f, static_cast<GLfloat>(SCR_WIDTH), 0.0f, static_cast<GLfloat>(SCR_HEIGHT));
 	textShader.use();
@@ -711,9 +755,21 @@ int main()
 
 		float textPosX = 100.0f;
 		float textPosY = 1100.0f;
+		float textScale = 0.8f; // Increase the scale for better readability
+		glm::vec3 textColor = glm::vec3(1.0f, 1.0f, 1.0f); // White color for better contrast
 
-		// Render text at the specified position
-		RenderText(textShader, "Hello, world!", textPosX, textPosY, 1.0f, glm::vec3(0.5, 0.8f, 0.2f));
+		if (showText)
+		{
+			// Render multiple lines of text
+			RenderText(textShader, "Press 1,2 and 3 to change the view mode", textPosX, textPosY, textScale, textColor);
+			RenderText(textShader, "Press PgUp to accelerate and PgDown to decelerate", textPosX, textPosY-50.0f, textScale, textColor);
+			RenderText(textShader, "Press H to horn", textPosX, textPosY - 100.0f, textScale, textColor); // Adjust Y position for the next line
+			RenderText(textShader, "Press N to change the day/night cycle", textPosX, textPosY - 150.0f, textScale, textColor); // Adjust Y position for the next line
+			RenderText(textShader, "Press M to close/open this menu", textPosX, textPosY - 200.0f, textScale, textColor); // Adjust Y position for the next line
+		}
+
+		std::string speedText = GetSpeedText(trainAcceleration);
+		RenderText(textShader, speedText, textPosX, textPosY - 1000.0f, textScale, textColor); // Adjust Y position for the next line
 
 
 		//flyingCubeModel.Draw(lightingShader);
