@@ -23,7 +23,6 @@
 #include "Shader.h"
 #include "Skybox.h"
 #include "Model.h"
-#include "FlyingCube.h"
 #include "Camera.h"
 #include "ETrainMovementType.h"
 
