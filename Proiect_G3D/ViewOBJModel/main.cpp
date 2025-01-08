@@ -79,6 +79,7 @@ std::string tree1ObjFileName, tree2ObjFileName;
 std::string railwayObjFileName;
 std::string rockObjFileName;
 std::string mountainObjFileName;
+std::string ApartmentObjFileName;
 
 Model rockObjModel;
 Model mountainObjModel;
@@ -86,6 +87,7 @@ Model grassLawnObjModel;
 Model trainObjModel, trainStationObjModel;
 Model tree1ObjModel, tree2ObjModel;
 Model railwayObjModel;
+Model ApartmentObjModel;
 std::vector<Model> trainStationObjModels;
 
 std::vector<std::string> trainStationNames = { "Brasov", "Predeal", "Sinaia", "Campina", "Ploiesti", "Bucuresti" };
@@ -367,6 +369,10 @@ void loadModels(std::string currentPath)
 	mountainObjFileName = (currentPath + "\\Models\\Mountain\\mount.obj");
 	mountainObjModel = Model(mountainObjFileName, false);
 
+	ApartmentObjFileName = (currentPath + "\\Models\\Apartment_Block\\Apartment.obj");
+	ApartmentObjModel = Model(ApartmentObjFileName, false);
+	
+
 	for (int i = 0; i < 6; ++i)
 	{
 		trainStationObjFileName = (currentPath + "\\Models\\Trainstation_" + trainStationNames[i] + "\\train_station.obj");
@@ -460,7 +466,7 @@ int main()
 	float trainPathHeight = 10.0f;
 	float trainZMin = -100.0f;
 	float trainZMax = 100.0f;
-	int treeCount = 150;
+	int treeCount = 50;
 	glm::vec3 modelMin(-30.0f, 0.0f, -30.0f);  // Minimum coordinates (example)
 	glm::vec3 modelMax(30.0f, 0.0f, 30.0f);    // Maximum coordinates (example)
 
@@ -482,7 +488,7 @@ int main()
 		treeData.emplace_back(pos, randNum); // Store position and type
 	}
 
-	treeCount = 80;
+	treeCount = 50;
 	for (float z = trainZMin; z <= trainZMax; z += 1.0f) {
 		pathPoints.push_back(glm::vec3(0.0f, 0.0f, z));
 	}
@@ -521,7 +527,7 @@ int main()
 		glDepthFunc(GL_LEQUAL); // Permite desenarea Skybox in spate
 
 		skyboxShader.use();
-		skyboxShader.setMat4("view", glm::mat4(glm::mat3(pCamera->GetViewMatrix()))); // Elimina translatia
+		skyboxShader.setMat4("view", glm::mat4(glm::mat3(pCamera->GetViewMatrix()))); 
 		skyboxShader.setMat4("projection", pCamera->GetProjectionMatrix());
 		skyboxShader.setMat4("model", glm::mat4(1.0f));
 
@@ -564,7 +570,6 @@ int main()
 		}
 		else
 		{
-
 			lightingShader.SetVec3("lightColor", .1f, .1f, .1f);
 		}
 
@@ -636,98 +641,95 @@ int main()
 			firstStation == true;
 		}
 
+
+		int segmentsX = 3; // Number of grass segments in the X direction (sideways)
+
 		for (int i = -1; i <= 3; ++i) {
-			glm::mat4 grassLawnModelMatrix_middle = glm::mat4(1.f);
-			grassLawnModelMatrix_middle = glm::translate(grassLawnModelMatrix_middle, glm::vec3(0.f, -0.2f, (currentLawnSegment + i) * lawnLength));
-			grassLawnModelMatrix_middle = glm::scale(grassLawnModelMatrix_middle, glm::vec3(3000.f, 500.f, 3000.f));
-			lightingWithTextureShader.setMat4("model", grassLawnModelMatrix_middle);
-			grassLawnObjModel.Draw(lightingWithTextureShader);
+			for (int l = 0; l < segmentsX; ++l) {
+				glm::mat4 grassLawnModelMatrix_middle = glm::mat4(1.f);
 
-			for (int j = -2; j < 3; ++j) {
-				glm::mat4 railwayModelMatrix = glm::mat4(1.f);
-				railwayModelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(1.f, 1.f, 4.f));
-				railwayModelMatrix = glm::translate(railwayModelMatrix, glm::vec3(-0.3, 0.2, j * railwayLength + (currentLawnSegment + i) * lawnLength / 4));
-				railwayModelMatrix = glm::rotate(railwayModelMatrix, glm::radians(90.f), glm::vec3(0, 1, 0));
-				lightingWithTextureShader.setMat4("model", railwayModelMatrix);
-				railwayObjModel.Draw(lightingWithTextureShader);
-			}
+				// Adjust the translation to move in the X direction
+				grassLawnModelMatrix_middle = glm::translate(grassLawnModelMatrix_middle, glm::vec3((l - segmentsX / 2) * lawnLength, -0.2f, (currentLawnSegment + i) * lawnLength));
 
-			if ((currentLawnSegment + i + 2) % 4 != 2) {
-				for (size_t k = 0; k < treeData.size(); ++k) {
-					const auto& tree = treeData[k];
-					glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
-					treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k])); // Apply the scale factor
-					lightingWithTextureShader.setMat4("model", treeMatrix);
+				// Scale the grass model
+				grassLawnModelMatrix_middle = glm::scale(grassLawnModelMatrix_middle, glm::vec3(3000.f, 500.f, 3000.f));
 
-					if (tree.second == 0) {
-						tree1ObjModel.Draw(lightingWithTextureShader);
+				// Set the model matrix and draw the grass lawn
+				lightingWithTextureShader.setMat4("model", grassLawnModelMatrix_middle);
+				grassLawnObjModel.Draw(lightingWithTextureShader);
 
-						Texture treeTexture = tree1ObjModel.textures_loaded[0];
-						glActiveTexture(GL_TEXTURE0); // for tree texture
-
-						glActiveTexture(GL_TEXTURE0); // for tree texture
-						glBindTexture(GL_TEXTURE_2D, treeTexture.id); // Bind tree texture
-					}
-					else {
-						tree2ObjModel.Draw(lightingWithTextureShader);
-
-						Texture treeTexture = tree2ObjModel.textures_loaded[0];
-						glActiveTexture(GL_TEXTURE0); // for tree texture
-
-						glActiveTexture(GL_TEXTURE0); // for tree texture
-						glBindTexture(GL_TEXTURE_2D, treeTexture.id); // Bind tree texture
-					}
-					
-					// Draw the rock at a slightly offset position from the tree
-					glm::vec3 rockPosition = tree.first + glm::vec3(1.0f, 0.0f, 1.0f); // Adjust the offset as needed
-					glm::mat4 rockMatrix = glm::translate(glm::mat4(1.0f), rockPosition + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
-					rockMatrix = glm::scale(rockMatrix, glm::vec3(treeScales[k] * rockScaleFactor)); // Apply the rock scale factor
-					lightingWithTextureShader.setMat4("model", rockMatrix);
-					rockObjModel.Draw(lightingWithTextureShader);
-				}
-			}
-			else {
-				for (size_t k = 0; k < treeData2.size(); ++k) {
-					const auto& tree = treeData2[k];
-					glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
-					treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k])); // Apply the scale factor
-					lightingWithTextureShader.setMat4("model", treeMatrix);
-
-					if (tree.second == 0) {
-						tree1ObjModel.Draw(lightingWithTextureShader);
-
-						Texture treeTexture = tree1ObjModel.textures_loaded[0];
-						glActiveTexture(GL_TEXTURE0); // for tree texture
-
-						glActiveTexture(GL_TEXTURE0); // for tree texture
-						glBindTexture(GL_TEXTURE_2D, treeTexture.id); // Bind tree texture
-					}
-					else {
-						tree2ObjModel.Draw(lightingWithTextureShader);
-
-						Texture treeTexture = tree2ObjModel.textures_loaded[0];
-						glActiveTexture(GL_TEXTURE0); // for tree texture
-
-						glActiveTexture(GL_TEXTURE0); // for tree texture
-						glBindTexture(GL_TEXTURE_2D, treeTexture.id); // Bind tree texture
-					}
-
-					// Draw the rock at a slightly offset position from the tree
-					glm::vec3 rockPosition = tree.first + glm::vec3(1.0f, 0.0f, 1.0f); // Adjust the offset as needed
-					glm::mat4 rockMatrix = glm::translate(glm::mat4(1.0f), rockPosition + glm::vec3(0.f, 0.f, (currentLawnSegment + i) * lawnLength));
-					rockMatrix = glm::scale(rockMatrix, glm::vec3(treeScales[k] * rockScaleFactor)); // Apply the rock scale factor
-					lightingWithTextureShader.setMat4("model", rockMatrix);
-					rockObjModel.Draw(lightingWithTextureShader);
+				// Handle railway model rendering
+				for (int j = -2; j < 3; ++j) {
+					glm::mat4 railwayModelMatrix = glm::mat4(1.f);
+					railwayModelMatrix = glm::scale(railwayModelMatrix, glm::vec3(1.f, 1.f, 4.f));
+					railwayModelMatrix = glm::translate(railwayModelMatrix, glm::vec3(-0.3f, 0.2f, j * railwayLength + (currentLawnSegment + i) * lawnLength / 4));
+					railwayModelMatrix = glm::rotate(railwayModelMatrix, glm::radians(90.f), glm::vec3(0, 1, 0));
+					lightingWithTextureShader.setMat4("model", railwayModelMatrix);
+					railwayObjModel.Draw(lightingWithTextureShader);
 				}
 
-				glm::mat4 trainStationModelMatrix = glm::mat4(1.0f);
-				trainStationModelMatrix = glm::translate(trainStationModelMatrix, glm::vec3(-11.0f, 0.40f, (currentLawnSegment + i) * lawnLength));
-				trainStationModelMatrix = glm::scale(trainStationModelMatrix, glm::vec3(2.0f));
-				trainStationModelMatrix = glm::rotate(trainStationModelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-				lightingWithTextureShader.setMat4("model", trainStationModelMatrix);
+				// Tree and rock rendering
+				if ((currentLawnSegment + i + 2) % 4 != 2) {
+					for (size_t k = 0; k < treeData.size(); ++k) {
+						const auto& tree = treeData[k];
 
-				int stationIndex = ((currentLawnSegment + i) / 4) % trainStationNames.size();
-				trainStationObjModels[stationIndex].Draw(lightingWithTextureShader);
+						// Modify X to place trees sideways (in the X direction)
+						float offsetX = (l - segmentsX / 2) * lawnLength; // Adjust for side positioning
+						glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(offsetX, 0.f, (currentLawnSegment + i) * lawnLength));
+						treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k])); // Apply scale factor
+
+						// Set the model matrix for the tree
+						lightingWithTextureShader.setMat4("model", treeMatrix);
+
+						// Choose the tree model and texture
+						if (tree.second == 0) {
+							tree1ObjModel.Draw(lightingWithTextureShader);
+							Texture treeTexture = tree1ObjModel.textures_loaded[0];
+							glBindTexture(GL_TEXTURE_2D, treeTexture.id);
+						}
+						else {
+							tree2ObjModel.Draw(lightingWithTextureShader);
+							Texture treeTexture = tree2ObjModel.textures_loaded[0];
+							glBindTexture(GL_TEXTURE_2D, treeTexture.id);
+						}
+					}
+				}
+				else {
+					for (size_t k = 0; k < treeData2.size(); ++k) {
+						const auto& tree = treeData2[k];
+
+						float offsetX = (l - segmentsX / 2) * lawnLength;
+						glm::mat4 treeMatrix = glm::translate(glm::mat4(1.0f), tree.first + glm::vec3(offsetX, 0.f, (currentLawnSegment + i) * lawnLength));
+						treeMatrix = glm::scale(treeMatrix, glm::vec3(treeScales[k])); // Apply scale factor
+
+						// Set the model matrix for the tree
+						lightingWithTextureShader.setMat4("model", treeMatrix);
+
+						// Choose the tree model and texture
+						if (tree.second == 0) {
+							tree1ObjModel.Draw(lightingWithTextureShader);
+							Texture treeTexture = tree1ObjModel.textures_loaded[0];
+							glBindTexture(GL_TEXTURE_2D, treeTexture.id);
+						}
+						else {
+							tree2ObjModel.Draw(lightingWithTextureShader);
+							Texture treeTexture = tree2ObjModel.textures_loaded[0];
+							glBindTexture(GL_TEXTURE_2D, treeTexture.id);
+						}
+					}
+
+					// Train station rendering (accessing sideways segments)
+					glm::mat4 trainStationModelMatrix = glm::mat4(1.0f);
+					// Adjust the train station's X position using `l`
+					trainStationModelMatrix = glm::translate(trainStationModelMatrix, glm::vec3(-11.0f, 0.40f, (currentLawnSegment + i) * lawnLength));
+					trainStationModelMatrix = glm::scale(trainStationModelMatrix, glm::vec3(2.0f));
+					trainStationModelMatrix = glm::rotate(trainStationModelMatrix, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+					lightingWithTextureShader.setMat4("model", trainStationModelMatrix);
+
+					// Determine which train station model to use
+					int stationIndex = ((currentLawnSegment + i) / 4) % trainStationNames.size();
+					trainStationObjModels[stationIndex].Draw(lightingWithTextureShader);
+				}
 			}
 		}
 
