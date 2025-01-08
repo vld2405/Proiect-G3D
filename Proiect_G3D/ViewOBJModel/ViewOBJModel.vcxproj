@@ -81,7 +81,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>..\_external\GLEW;..\_external\glfw;..\_external\glm;..\_external\stb;..\_external\freeglut\include;..\_external\ft2130\freetype-2.13.0\include;..\_external\ft2130\freetype-2.13.0\objs\x64\Debug\;$(IncludePath)</IncludePath>
-    <LibraryPath>..\_external\GLFW\x64;..\_external\GLEW\x64;..\_external\freeglut\lib\x64;..\_external\ft2130\freetype-2.13.0\objs\x64\Debug\;$(LibraryPath)</LibraryPath>
+    <LibraryPath>..\_external\GLFW\x64;..\_external\GLEW\x64;..\_external\freeglut\lib\x64;..\_external\ft2130\freetype-2.13.0\objs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
