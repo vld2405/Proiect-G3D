@@ -81,6 +81,12 @@
     <None Include="..\Shaders\Skybox.fs">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="DepthMap.vs">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="DepthMap.fs">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Mesh.h">
