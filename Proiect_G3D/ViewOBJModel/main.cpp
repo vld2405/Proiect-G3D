@@ -41,8 +41,8 @@
 #include FT_FREETYPE_H
 
 // settings
-const unsigned int SCR_WIDTH = 1600;
-const unsigned int SCR_HEIGHT = 1200;
+const unsigned int SCR_WIDTH = 1920;
+const unsigned int SCR_HEIGHT = 1080;
 
 
 
@@ -328,6 +328,11 @@ void RenderDepthMap(GLuint& depthMapFBO, Shader& shaderProgram, glm::mat4& light
 
 	shaderProgram.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
+	glm::mat4 trainModelMatrix = glm::scale(glm::mat4(1.0), glm::vec3(1.f));
+	trainModelMatrix = glm::translate(trainModelMatrix, trainPos);
+	shaderProgram.setMat4("model", trainModelMatrix);
+	trainObjModel.Draw(shaderProgram);
+
 	int segmentsX = 3;
 
 	for (int i = -1; i <= 3; ++i) {
@@ -403,6 +408,22 @@ void RenderDepthMap(GLuint& depthMapFBO, Shader& shaderProgram, glm::mat4& light
 						glBindTexture(GL_TEXTURE_2D, treeTexture.id);
 					}
 				}
+
+				glm::mat4 objectMatrixRight = glm::mat4(1.0f);
+				objectMatrixRight = glm::translate(objectMatrixRight, glm::vec3(-70.0f, 13.0f, (currentLawnSegment + i) * lawnLength));
+				objectMatrixRight = glm::scale(objectMatrixRight, glm::vec3(2.5f, 2.5f, 2.5f));
+				objectMatrixRight = glm::rotate(objectMatrixRight, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+				shaderProgram.setMat4("model", objectMatrixRight);
+
+				ApartmentObjModel.Draw(shaderProgram);
+
+				glm::mat4 objectMatrixLeft = glm::mat4(1.0f);
+				objectMatrixLeft = glm::translate(objectMatrixLeft, glm::vec3(50.0f, 13.0f, (currentLawnSegment + i) * lawnLength));
+				objectMatrixLeft = glm::scale(objectMatrixLeft, glm::vec3(2.5f, 2.5f, 2.5f));
+				objectMatrixLeft = glm::rotate(objectMatrixLeft, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+				shaderProgram.setMat4("model", objectMatrixLeft);
+
+				ApartmentObjModel.Draw(shaderProgram);
 
 				// Train station rendering (accessing sideways segments)
 				glm::mat4 trainStationModelMatrix = glm::mat4(1.0f);
@@ -1106,7 +1127,7 @@ int main()
 						}
 					}
 					glm::mat4 objectMatrixRight = glm::mat4(1.0f);
-					objectMatrixRight = glm::translate(objectMatrixRight, glm::vec3(-70.0f, 15.0f, (currentLawnSegment + i) * lawnLength));
+					objectMatrixRight = glm::translate(objectMatrixRight, glm::vec3(-70.0f, 13.0f, (currentLawnSegment + i) * lawnLength));
 					objectMatrixRight = glm::scale(objectMatrixRight, glm::vec3(2.5f, 2.5f, 2.5f));
 					objectMatrixRight = glm::rotate(objectMatrixRight, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 					lightingWithTextureShader.setMat4("model", objectMatrixRight);
@@ -1114,7 +1135,7 @@ int main()
 					ApartmentObjModel.Draw(lightingWithTextureShader);
 
 					glm::mat4 objectMatrixLeft = glm::mat4(1.0f);
-					objectMatrixLeft = glm::translate(objectMatrixLeft, glm::vec3(50.0f, 15.0f, (currentLawnSegment + i) * lawnLength));
+					objectMatrixLeft = glm::translate(objectMatrixLeft, glm::vec3(50.0f, 13.0f, (currentLawnSegment + i) * lawnLength));
 					objectMatrixLeft = glm::scale(objectMatrixLeft, glm::vec3(2.5f, 2.5f, 2.5f));
 					objectMatrixLeft = glm::rotate(objectMatrixLeft, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 					lightingWithTextureShader.setMat4("model", objectMatrixLeft);
